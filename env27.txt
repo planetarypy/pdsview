@@ -1,0 +1,28 @@
+name: pdsview27
+dependencies:
+- dateutil=2.4.1=py27_0
+- freetype=2.4.10=1
+- gdal=1.10.1=np18py27_2
+- libpng=1.5.13=1
+- matplotlib=1.4.0=np19py27_0
+- numpy=1.9.2=py27_0
+- openssl=1.0.1k=1
+- pip=6.1.1=py27_0
+- pyparsing=2.0.1=py27_0
+- pyqt=4.10.4=py27_0
+- python=2.7.9=1
+- pytz=2015.2=py27_0
+- qt=4.8.6=0
+- readline=6.2=2
+- setuptools=15.0=py27_0
+- sip=4.16.5=py27_0
+- six=1.9.0=py27_0
+- sqlite=3.8.4.1=1
+- tk=8.5.18=0
+- zlib=1.2.8=0
+- pip:
+  - gdal-pds==0.1
+  - ginga==2.2.20150303042350
+  - pdsview (/home/bvnayak/Workspace/pdsview)==0.1.0
+  - pyfits==3.3
+  - python-dateutil==2.4.1
