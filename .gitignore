@@ -1,11 +1,13 @@
 *.py[cod]
 
+._*
 # C extensions
 *.so
 
 # Packages
 *.egg
 *.egg-info
+.nfs*
 dist
 build
 eggs
