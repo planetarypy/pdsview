@@ -81,10 +81,10 @@ class FitsViewer(QtGui.QMainWindow):
 
     def label(self):
         try:
-            label_data = image.pds_image.label
+            label_data = image.pds_image.labelview
         except NameError:
             label_data = None
-        mw = label.label_show(label_data)
+        mw = label.LabelView(label_data)
         self.hboxlayout.addWidget(mw, stretch=0)
 
     def find(self):

@@ -17,3 +17,11 @@ class PDSImage(BaseImage):
         pds_image = gdal_pds.PDSImage(filepath)
         self.pds_image = pds_image
         self.set_data(pds_image.image)
+        with open(filepath) as f:
+            labelview = []
+            for lineno, line in enumerate(f):
+                line = line.rstrip()
+                if line.strip() == 'END':
+                    break
+                labelview.append(line)
+        pds_image.labelview = labelview
