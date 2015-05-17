@@ -8,9 +8,10 @@
 # This is open-source software licensed under a BSD license.
 # Please see the file LICENSE.txt for details.
 #
-import sys, os
+import sys
 import logging
 import PDSImage
+import label
 
 from ginga.qtw.QtHelp import QtGui, QtCore
 from ginga.qtw.ImageViewCanvasQt import ImageViewCanvas
@@ -34,13 +35,10 @@ class FitsViewer(QtGui.QMainWindow):
         self.fitsimage = fi
 
         bd = fi.get_bindings()
-        bd.enable_pan(True)
-        bd.enable_zoom(True)
-        bd.enable_cuts(True)
-        bd.enable_flip(True)
+        bd.enable_all(True)
 
         w = fi.get_widget()
-        w.resize(512, 512)
+        w.resize(768, 768)
 
         vbox = QtGui.QVBoxLayout()
         vbox.setContentsMargins(QtCore.QMargins(2, 2, 2, 2))
@@ -48,35 +46,49 @@ class FitsViewer(QtGui.QMainWindow):
         vbox.addWidget(w, stretch=1)
 
         hbox = QtGui.QHBoxLayout()
+        self.hboxlayout = QtGui.QHBoxLayout()
         hbox.setContentsMargins(QtCore.QMargins(4, 2, 4, 2))
 
         wopen = QtGui.QPushButton("Open File")
         wopen.clicked.connect(self.open_file)
+        wlabel = QtGui.QPushButton("Label")
+        wlabel.clicked.connect(self.label)
         wquit = QtGui.QPushButton("Quit")
         wquit.clicked.connect(self.quit)
 
         hbox.addStretch(1)
-        for w in (wopen, wquit):
+        for w in (wopen, wlabel, wquit):
             hbox.addWidget(w, stretch=0)
 
         hw = QtGui.QWidget()
         hw.setLayout(hbox)
         vbox.addWidget(hw, stretch=0)
+        self.vbox = vbox
+        self.hbox = hbox
+        self.w = w
 
         vw = QtGui.QWidget()
         self.setCentralWidget(vw)
         vw.setLayout(vbox)
 
     def load_file(self, filepath):
-        # image = AstroImage.AstroImage(logger=self.logger)
-        # filepath = '1f345867992effb0j3p1212l0m1.img'
-        # print(filepath)
+        global image
         image = PDSImage.PDSImage(logger=self.logger)
         image.load_file(filepath)
         self.fitsimage.set_image(image)
         print('File_Loaded')
-        # print(image)
         self.setWindowTitle(filepath)
+
+    def label(self):
+        try:
+            label_data = image.pds_image.labelview
+        except NameError:
+            label_data = None
+        mw = label.LabelView(label_data)
+        self.hboxlayout.addWidget(mw, stretch=0)
+
+    def find(self):
+        print("Search")
 
     def open_file(self):
         res = QtGui.QFileDialog.getOpenFileName(self, "Open IMG file",
@@ -85,7 +97,6 @@ class FitsViewer(QtGui.QMainWindow):
             fileName = res[0]
         else:
             fileName = str(res)
-        # fileName = '1f345867992effb0j3p1212l0m1.img'
         self.load_file(fileName)
 
     def drop_file(self, fitsimage, paths):
@@ -109,7 +120,7 @@ def main():
     logger.addHandler(stderrHdlr)
 
     w = FitsViewer(logger)
-    w.resize(524, 540)
+    w.resize(780, 770)
     w.show()
     app.setActiveWindow(w)
     w.raise_()
@@ -118,5 +129,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-# END
