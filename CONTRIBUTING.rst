@@ -3,7 +3,7 @@ Contributing
 ============
 
 Contributions are welcome, and they are greatly appreciated! Every
-little bit helps, and credit will always be given. 
+little bit helps, and credit will always be given.
 
 You can contribute in many ways:
 
@@ -13,7 +13,7 @@ Types of Contributions
 Report Bugs
 ~~~~~~~~~~~
 
-Report bugs at https://github.com/asu-bell-group/pdsview/issues.
+Report bugs at https://github.com/planetarypy/pdsview/issues.
 
 If you are reporting a bug, please include:
 
@@ -36,14 +36,14 @@ is open to whoever wants to implement it.
 Write Documentation
 ~~~~~~~~~~~~~~~~~~~
 
-pdsview could always use more documentation, whether as part of the 
+pdsview could always use more documentation, whether as part of the
 official pdsview docs, in docstrings, or even on the web in blog posts,
 articles, and such.
 
 Submit Feedback
 ~~~~~~~~~~~~~~~
 
-The best way to send feedback is to file an issue at https://github.com/asu-bell-group/pdsview/issues.
+The best way to send feedback is to file an issue at https://github.com/planetarypy/pdsview/issues.
 
 If you are proposing a feature:
 
@@ -55,36 +55,40 @@ If you are proposing a feature:
 Get Started!
 ------------
 
-Ready to contribute? Here's how to set up `pdsview` for
-local development.
+Ready to contribute? Here's how to set up `pdsview` for local development.
 
-1. Fork_ the `pdsview` repo on GitHub.
+1. Fork the `pdsview` repo on GitHub.
 2. Clone your fork locally::
 
     $ git clone git@github.com:your_name_here/pdsview.git
 
-3. Create a branch for local development::
+3. Install your local copy into a virtualenv. Assuming you have virtualenvwrapper installed, this is how you set up your fork for local development::
+
+    $ mkvirtualenv pdsview
+    $ cd pdsview/
+    $ pip install -r requirements.txt
+
+4. Create a branch for local development::
 
     $ git checkout -b name-of-your-bugfix-or-feature
 
-Now you can make your changes locally.
+   Now you can make your changes locally.
 
-4. When you're done making changes, check that your changes pass style and unit
-   tests, including testing other Python versions with tox::
+5. When you're done making changes, check that your changes pass flake8 and the tests, including testing other Python versions with tox::
 
-    $ tox
+    $ make lint
+    $ make test
+    $ make test-all
 
-To get tox, just pip install it.
+   To get flake8 and tox, just pip install them into your virtualenv.
 
-5. Commit your changes and push your branch to GitHub::
+6. Commit your changes and push your branch to GitHub::
 
     $ git add .
     $ git commit -m "Your detailed description of your changes."
     $ git push origin name-of-your-bugfix-or-feature
 
-6. Submit a pull request through the GitHub website.
-
-.. _Fork: https://github.com/Nekroze/pdsview/fork
+7. Submit a pull request through the GitHub website.
 
 Pull Request Guidelines
 -----------------------
@@ -95,15 +99,13 @@ Before you submit a pull request, check that it meets these guidelines:
 2. If the pull request adds functionality, the docs should be updated. Put
    your new functionality into a function with a docstring, and add the
    feature to the list in README.rst.
-3. The pull request should work for Python 2.6, 2.7, and 3.3, and for PyPy.
-   Check https://travis-ci.org/asu-bell-group/pdsview 
-   under pull requests for active pull requests or run the ``tox`` command and
-   make sure that the tests pass for all supported Python versions.
-
+3. The pull request should work for Python 2.6, 2.7, 3.3, and 3.4, and for PyPy. Check
+   https://travis-ci.org/planetarypy/pdsview/pull_requests
+   and make sure that the tests pass for all supported Python versions.
 
 Tips
 ----
 
 To run a subset of tests::
 
-	 $ py.test test/test_pdsview.py
+    py.test tests/test_pdsview
