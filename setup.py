@@ -1,7 +1,6 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-import os
-import sys
 
 try:
     from setuptools import setup
@@ -9,48 +8,50 @@ except ImportError:
     from distutils.core import setup
 
 
-if sys.argv[-1] == 'publish':
-    os.system('python setup.py sdist upload')
-    sys.exit()
+with open('README.rst') as readme_file:
+    readme = readme_file.read()
 
-readme = open('README.rst').read()
-doclink = """
-Documentation
--------------
+with open('HISTORY.rst') as history_file:
+    history = history_file.read().replace('.. :changelog:', '')
 
-The full documentation is at http://pdsview.rtfd.org."""
-history = open('HISTORY.rst').read().replace('.. :changelog:', '')
+requirements = [
+    # TODO: put package requirements here
+]
 
 setup(
     name='pdsview',
     version='0.1.0',
-    description='Python PDS Image Viewer',
-    long_description=readme + '\n\n' + doclink + '\n\n' + history,
-    author='Austin Godber',
-    author_email='godber@asu.edu',
-    url='https://github.com/asu-bell-group/pdsview',
+    description="PDS Image Viewer",
+    long_description=readme + '\n\n' + history,
+    author="PlanetaryPy Developers",
+    author_email='contact@planetarypy.com',
+    url='https://github.com/planetarypy/pdsview',
     packages=[
         'pdsview',
     ],
-    package_dir={'pdsview': 'pdsview'},
+    package_dir={'pdsview':
+                 'pdsview'},
     include_package_data=True,
     install_requires=[
         'ginga>=2.1',
+        'planetaryimage>=0.1.0',
+        'PySide>=1.2.2',
+        'astropy>=1.0.2'
     ],
-    license='MIT',
+    license="BSD",
     zip_safe=False,
     keywords='pdsview',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: MIT License',
+        'License :: OSI Approved :: BSD License',
         'Natural Language :: English',
-        'Programming Language :: Python :: 2',
+        "Programming Language :: Python :: 2",
         'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.3',
-        'Programming Language :: Python :: Implementation :: PyPy',
+        'Programming Language :: Python :: 3.4',
     ],
     entry_points={
         'console_scripts': [
