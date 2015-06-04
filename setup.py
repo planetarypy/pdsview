@@ -36,7 +36,6 @@ setup(
     include_package_data=True,
     install_requires=[
         'ginga>=2.1',
-        'gdal-pds>=0.1'
     ],
     license='MIT',
     zip_safe=False,

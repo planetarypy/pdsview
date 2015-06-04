@@ -3,7 +3,7 @@
 #
 
 from ginga.BaseImage import BaseImage
-import gdal_pds
+from planetaryimage import PDS3Image
 
 
 class PDSImage(BaseImage):
@@ -14,9 +14,9 @@ class PDSImage(BaseImage):
 
     def load_file(self, filepath):
         self.logger.debug("Loading file '%s' ..." % (filepath))
-        pds_image = gdal_pds.PDSImage(filepath)
+        pds_image = PDS3Image.open(filepath)
         self.pds_image = pds_image
-        self.set_data(pds_image.image)
+        self.set_data(pds_image.data)
         with open(filepath) as f:
             labelview = []
             for lineno, line in enumerate(f):
