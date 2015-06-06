@@ -8,7 +8,6 @@ pdsview
 .. image:: https://img.shields.io/pypi/v/pdsview.svg
         :target: https://pypi.python.org/pypi/pdsview
 
-
 PDS Image Viewer
 
 * Free software: BSD license
