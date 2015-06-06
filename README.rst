@@ -16,4 +16,28 @@ PDS Image Viewer
 Features
 --------
 
-* TODO
+* NASA PDS Image Viewer
+
+NOTE: This is alpha quality software.  It lacks many features and lacks support
+for many PDS image types.
+
+Install
+-------
+
+On OS X you must first install the Qt UI toolkit using Homebrew
+(http://brew.sh/).  After installing Homebrew, issue the following command::
+
+    brew install qt
+
+Create a new virtual environment, install the `pdsview` module with pip,
+and setup the PySide environment::
+
+    mkvirtualenv pdsview
+    pip install pdsview
+    pyside_postinstall.py -install
+
+Now you should be able to run the `pdsview` program.
+
+This works on Linux as well (Ubuntu 14.04).  Instructions coming soon.
+Installing the proper Qt dev package and running `pyside_postinstall.py`
+in a similar fashion should work.

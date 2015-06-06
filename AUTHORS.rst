@@ -10,4 +10,6 @@ Development Lead
 Contributors
 ------------
 
-None yet. Why not be the first?
+* Bhavin Nayak
+* Nikhil Kalige <nikhilkalige@gmail.com>
+* Austin Godber <godber@uberhip.com>
