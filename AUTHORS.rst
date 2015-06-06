@@ -5,7 +5,7 @@ Credits
 Development Lead
 ----------------
 
-* Austin Godber <godber@asu.edu>
+* PlanetaryPy Developers <contact@planetarypy.com>
 
 Contributors
 ------------

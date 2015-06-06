@@ -1,22 +1,19 @@
-=============================
+===============================
 pdsview
-=============================
+===============================
 
-.. image:: https://badge.fury.io/py/pdsview.png
-    :target: http://badge.fury.io/py/pdsview
+.. image:: https://img.shields.io/travis/planetarypy/pdsview.svg
+        :target: https://travis-ci.org/planetarypy/pdsview
 
-.. image:: https://travis-ci.org/planetarypi/pdsview.png?branch=master
-    :target: https://travis-ci.org/planetarypi/pdsview
+.. image:: https://img.shields.io/pypi/v/pdsview.svg
+        :target: https://pypi.python.org/pypi/pdsview
 
-.. image:: https://pypip.in/d/pdsview/badge.png
-    :target: https://pypi.python.org/pypi/pdsview
+PDS Image Viewer
 
-
-Python PDS Image Viewer
-
+* Free software: BSD license
+* Documentation: https://pdsview.readthedocs.org.
 
 Features
 --------
 
 * TODO
-

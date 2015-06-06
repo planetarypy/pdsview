@@ -1,4 +1,5 @@
-__author__ = 'Austin Godber'
-__email__ = 'godber@asu.edu'
-__version__ = '0.1.0'
+# -*- coding: utf-8 -*-
 
+__author__ = 'PlanetaryPy Developers'
+__email__ = 'contact@planetarypy.com'
+__version__ = '0.1.0'

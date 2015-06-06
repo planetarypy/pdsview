@@ -1,27 +1,27 @@
-.. complexity documentation master file, created by
+.. pdsview documentation master file, created by
    sphinx-quickstart on Tue Jul  9 22:26:36 2013.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-.. include:: ../README.rst
+Welcome to pdsview's documentation!
+======================================
 
 Contents:
-=========
 
 .. toctree::
    :maxdepth: 2
 
+   readme
    installation
    usage
    contributing
    authors
    history
 
-Feedback
-========
+Indices and tables
+==================
 
-If you have any suggestions or questions about **pdsview** feel free to email me
-at godber@asu.edu.
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
 
-If you encounter any errors or problems with **pdsview**, please let me know!
-Open an Issue at the GitHub http://github.com/asu-bell-group/pdsview main repository.
