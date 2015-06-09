@@ -1,6 +1,6 @@
-===============================
-pdsview
-===============================
+====================================
+pdsview - A Python PDS Image Viewer
+====================================
 
 .. image:: https://img.shields.io/travis/planetarypy/pdsview.svg
         :target: https://travis-ci.org/planetarypy/pdsview
@@ -10,8 +10,6 @@ pdsview
 
 **NOTE** This is Alpha quality software that is being actively developed, use
 at your own risk.
-
-PDS Image Viewer
 
 * Free software: BSD license
 * Documentation: https://pdsview.readthedocs.org.
