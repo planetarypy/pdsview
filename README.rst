@@ -8,6 +8,9 @@ pdsview
 .. image:: https://img.shields.io/pypi/v/pdsview.svg
         :target: https://pypi.python.org/pypi/pdsview
 
+**NOTE** This is Alpha quality software that is being actively developed, use
+at your own risk.
+
 PDS Image Viewer
 
 * Free software: BSD license
