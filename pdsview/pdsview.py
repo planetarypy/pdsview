@@ -12,6 +12,7 @@ import sys
 import logging
 import PDSImage
 import label
+import labelError
 
 from ginga.qtw.QtHelp import QtGui, QtCore
 from ginga.qtw.ImageViewCanvasQt import ImageViewCanvas
@@ -19,25 +20,34 @@ from ginga.qtw.ImageViewCanvasQt import ImageViewCanvas
 STD_FORMAT = '%(asctime)s | %(levelname)1.1s | %(filename)s:%(lineno)d (%(funcName)s) | %(message)s'
 
 
-class FitsViewer(QtGui.QMainWindow):
+class PDSViewer(QtGui.QMainWindow):
 
     def __init__(self, logger):
-        super(FitsViewer, self).__init__()
+        super(PDSViewer, self).__init__()
         self.logger = logger
 
-        fi = ImageViewCanvas(self.logger, render='widget')
-        fi.enable_autocuts('on')
-        fi.set_autocut_params('zscale')
-        fi.enable_autozoom('on')
-        fi.set_callback('drag-drop', self.drop_file)
-        fi.set_bg(0.2, 0.2, 0.2)
-        fi.ui_setActive(True)
-        self.fitsimage = fi
+        self.image = ""
 
-        bd = fi.get_bindings()
-        bd.enable_all(True)
+#       Set the subwindow names here. This implementation will help prevent the
+#       main window from spawning duplicate children. Even if the duplication
+#       prevention is not set up for a window, this will be a handy reference
+#       list of windows(or dialogues in most cases) that can be spawned out of
+#       this window.
+        self._labelErrorWindow = None
+        self._labelWindow = None
+        self.imageFlag = 0
 
-        w = fi.get_widget()
+        self.pdsView = ImageViewCanvas(self.logger, render='widget')
+        self.pdsView.enable_autocuts('on')
+        self.pdsView.set_autocut_params('zscale')
+        self.pdsView.enable_autozoom('on')
+        self.pdsView.set_callback('drag-drop', self.drop_file)
+        self.pdsView.set_bg(0.5, 0.5, 0.5)
+        self.pdsView.ui_setActive(True)
+
+        self.pdsView.get_bindings().enable_all(True)
+
+        w = self.pdsView.get_widget()
         w.resize(768, 768)
 
         vbox = QtGui.QVBoxLayout()
@@ -49,16 +59,17 @@ class FitsViewer(QtGui.QMainWindow):
         self.hboxlayout = QtGui.QHBoxLayout()
         hbox.setContentsMargins(QtCore.QMargins(4, 2, 4, 2))
 
-        wopen = QtGui.QPushButton("Open File")
-        wopen.clicked.connect(self.open_file)
-        wlabel = QtGui.QPushButton("Label")
-        wlabel.clicked.connect(self.label)
-        wquit = QtGui.QPushButton("Quit")
-        wquit.clicked.connect(self.quit)
+        openFile = QtGui.QPushButton("Open File")
+        openFile.clicked.connect(self.open_file)
+        self.openLabel = QtGui.QPushButton("Label")
+        self.openLabel.clicked.connect(self.label)
+        self.openLabel.setEnabled(False)
+        quitButton = QtGui.QPushButton("Quit")
+        quitButton.clicked.connect(self.quit)
 
         hbox.addStretch(1)
-        for w in (wopen, wlabel, wquit):
-            hbox.addWidget(w, stretch=0)
+        for button in (openFile, self.openLabel, quitButton):
+            hbox.addWidget(button, stretch=0)
 
         hw = QtGui.QWidget()
         hw.setLayout(hbox)
@@ -71,24 +82,46 @@ class FitsViewer(QtGui.QMainWindow):
         self.setCentralWidget(vw)
         vw.setLayout(vbox)
 
-    def load_file(self, filepath):
-        global image
-        image = PDSImage.PDSImage(logger=self.logger)
-        image.load_file(filepath)
-        self.fitsimage.set_image(image)
-        print('File_Loaded')
-        self.setWindowTitle(filepath)
-
     def label(self):
-        try:
-            label_data = image.pds_image.labelview
-        except NameError:
-            label_data = None
-        mw = label.LabelView(label_data)
-        self.hboxlayout.addWidget(mw, stretch=0)
+#       Utilizing the subwindow variables to check if the label window has
+#       been opened before. If not, the window is initialized.
+        self.imageLabel = self.image.pds_image.labelview
+        if self._labelWindow == None:
+            self._labelWindow = label.LabelView(self)
+            pos  = self.frameGeometry().topLeft()
+        self._labelWindow.isOpen = True
+        self._labelWindow.show()
+        self._labelWindow.activateWindow()
 
-    def find(self):
-        print("Search")
+#   I did not like how the implementation of the try/except pair, as I am going
+#   to focus on implementing preventative validation to avoid situations like
+#   this as opposed to post-mortem validation.
+#
+#    def label(self):
+#        try:
+#            print self.image
+#            self.imageLabel = self.image.pds_image.labelview
+#            if(self.imageFlag == 0):
+#                print type(self.image)
+#                print self.image
+#
+#           Utilizing the subwindow variables to check if the label window has
+#           been opened before. If not, the window is initialized.
+#            if self._labelWindow == None:
+#                self._labelWindow = label.LabelView(self)
+#                pos  = self.frameGeometry().topLeft()
+#            self._labelWindow.isOpen = True
+#            self._labelWindow.show()
+#            self._labelWindow.activateWindow()
+#
+#        except NameError:
+#            if(self.imageFlag == 0):
+#                print self.image
+#                print type(self.image)
+#            self._labelErrorWindow = labelError.LabelError().exec_()
+#        except Exception as e:
+#            self._labelErrorWindow = labelError.LabelError(e).exec_()
+#
 
     def open_file(self):
         res = QtGui.QFileDialog.getOpenFileName(self, "Open IMG file",
@@ -97,15 +130,49 @@ class FitsViewer(QtGui.QMainWindow):
             fileName = res[0]
         else:
             fileName = str(res)
-        self.load_file(fileName)
+        if(fileName != ""):
+            self.load_file(fileName)
+        else:
+            print "No file selected!"
+            return
 
-    def drop_file(self, fitsimage, paths):
+    def load_file(self, filepath):
+#       Not sure how to get rid of this global yet. I do know that it is needed
+#       for loading the label properly, but beyond that, I do not know what the
+#       full purpose of having this global it. might be used as a shortcut for
+#       error detection when starting up the label window..
+#        global image
+        self.image = PDSImage.PDSImage(logger=self.logger)
+        self.image.load_file(filepath)
+        self.imageFlag = 1
+        self.pdsView.set_image(self.image)
+
+#       This checks to see if the label window exists and is open. If so, this
+#       resets the label field so that the label being displayed is the label
+#       for the current product.
+        if(self._labelWindow != None):
+            if(self._labelWindow.isOpen == True):
+                self.imageLabel = self.image.pds_image.labelview
+                self._labelWindow.labelContents.setText('\n'.join(self.imageLabel))
+                self._labelWindow.cancel()
+                self._labelWindow.show()
+                self._labelWindow.activateWindow()
+
+        print('File_Loaded')
+        self.setWindowTitle(filepath)
+        self.openLabel.setEnabled(True)
+
+    def drop_file(self, pdsimage, paths):
         fileName = paths[0]
         self.load_file(fileName)
 
+#    def 
+#
     def quit(self, *args):
         self.logger.info("Attempting to shut down the application...")
-        self.deleteLater()
+        if(self._labelWindow != None):
+            self._labelWindow.cancel()
+        self.close()
 
 
 def main():
@@ -119,7 +186,7 @@ def main():
     stderrHdlr.setFormatter(fmt)
     logger.addHandler(stderrHdlr)
 
-    w = FitsViewer(logger)
+    w = PDSViewer(logger)
     w.resize(780, 770)
     w.show()
     app.setActiveWindow(w)
