@@ -1,66 +1,78 @@
+#
+# This module is a label viewer. At the moment, all it really does is display
+# the label and give the option to pull up a search window to search the text
+# in the label. When this window is hidden, the search query in the text finder
+# is cleared and that window is hidden as well if it is not already. Also, if
+# this window is left open, pdsview will automatically update the label field
+# so the label being displayed is always the label for the current product
+# being displayed.
+#
+
 from ginga.qtw.QtHelp import QtGui, QtCore
-import text_finderUI
+import textfinder
 
 
-class LabelView(QtGui.QWidget):
-    def __init__(self, image_label):
-        QtGui.QWidget.__init__(self, None)
-        print("Label Show")
-        self.textwindow = QtGui.QVBoxLayout()
-        self.textwindow.setContentsMargins(QtCore.QMargins(2, 2, 2, 2))
-        self.buttonwindow = QtGui.QHBoxLayout()
-        self.labelwindowlayout = QtGui.QHBoxLayout()
-        self.buttonwindow.setContentsMargins(QtCore.QMargins(4, 2, 4, 2))
+class LabelView(QtGui.QDialog):
+    def __init__(self, parent):
+        super(LabelView, self).__init__(parent)
 
-        self.textwidget = QtGui.QWidget()
-        self.textwidget.setWindowTitle("Label")
-        self.textwidget.resize(640, 620)
-        self.labelPT = QtGui.QTextEdit()
-        self.labelPT.setReadOnly(True)
+        # Initialize the subdialogs
+        self._finder_window = None
+
+        self.parent = parent
+        self.is_open = True
+
+        # Setting up the layout boxes.
+        self.text_layout = QtGui.QVBoxLayout()
+        self.text_layout.setContentsMargins(QtCore.QMargins(2, 2, 2, 2))
+        self.button_layout = QtGui.QHBoxLayout()
+        self.button_layout.addStretch()
+        self.button_layout.setContentsMargins(QtCore.QMargins(4, 2, 4, 2))
+        self.layout = QtGui.QGridLayout()
+
+        # Setting up window details.
+        self.setWindowTitle("Label")
+        self.resize(640, 620)
+
+        # Setting up the area where the label will be displayed.
+        self.label_contents = QtGui.QTextEdit()
+        self.label_contents.setReadOnly(True)
         self.font = QtGui.QFont("Monaco")
         self.font.setPointSize(12)
+        self.label_contents.setFont(self.font)
 
-        self.image_label = image_label
-        self.labelPT.setFont(self.font)
-        self.textwindow.addWidget(self.labelPT, stretch=0)
+        # Setting up the label and adding it to the label field.
+        self.label_contents.setText('\n'.join(self.parent.image_label))
 
-        findButton = QtGui.QPushButton("Find")
-        findButton.clicked.connect(self.find)
-        cancelbutton = QtGui.QPushButton("Cancel")
-        cancelbutton.clicked.connect(self.cancel)
+        # Creating and binding the buttons.
+        self.find_button = QtGui.QPushButton("Find")
+        self.find_button.clicked.connect(self.finder_window)
+        self.cancel_button = QtGui.QPushButton("Cancel")
+        self.cancel_button.clicked.connect(self.cancel)
 
-        for button in (findButton, cancelbutton):
-            self.buttonwindow.addWidget(button, stretch=0)
+        # Adding the text and button widgets to the layout boxes.
+        self.text_layout.addWidget(self.label_contents, stretch=0)
+        self.button_layout.addWidget(self.find_button, 0, 0)
+        self.button_layout.addWidget(self.cancel_button, 0, 1)
 
-        self.buttonwidget = QtGui.QWidget()
-        self.buttonwidget.setLayout(self.buttonwindow)
-        self.textwindow.addWidget(self.buttonwidget, stretch=0)
-        self.textwidget.setLayout(self.textwindow)
+        # Adding all of the layout boxes to the overall layout.
+        self.layout.addLayout(self.text_layout, 0, 0)
+        self.layout.addLayout(self.button_layout, 1, 0)
 
-        self.label_show()
+        # Adding the overall layout to the dialog box.
+        self.setLayout(self.layout)
 
-    def label_show(self):
-        if self.image_label == None:
-            self.labelPT.setText("Please Open an Image First !")
-        else:
-            self.labelPT.setText('\n'.join(self.image_label))
-            # labelPT.setText(json.dumps(image_label, indent=4))
-        self.textwidget.setLayout(self.textwindow)
-        self.textwidget.setMinimumWidth(50)
-        self.textwidget.show()
-        self.textwidget.raise_()
-        self.textwidget.activateWindow()
-        labelview_window = self.textwidget
-        return labelview_window
-
-    def find(self):
-        self.lastMatch = None
-        self.finderUI()
-
-    def finderUI(self):
-        mw = text_finderUI.LabelSearch()
-        self.labelwindowlayout.addWidget(mw, stretch=0)
-        print mw.search()
+    def finder_window(self):
+        # Make sure that there is only one instance of the dialog window.
+        if self._finder_window is None:
+            self._finder_window = textfinder.LabelSearch(self)
+        self._finder_window.show()
+        self._finder_window.activateWindow()
 
     def cancel(self):
-        self.deleteLater()
+        # Clear the query field and hide the search dialog if it isn't
+        # already hidden.
+        self.is_open = False
+        if self._finder_window is not None:
+            self._finder_window.cancel()
+        self.hide()
