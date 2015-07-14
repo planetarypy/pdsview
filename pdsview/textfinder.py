@@ -1,15 +1,16 @@
-#
-# This module implements a search feature for the label window. Since the label
-# will not be edited, the only thing this does is highlight query matches in
-# the label window. The search is a live search, so it will work as text is
-# being entered. When the search window is closed (hidden), the highlighting
-# will be undone and the query will be cleared.
-#
+"""This module implements a search feature for the label window. Since the
+label will not be edited, the only thing this does is highlight query matches
+in the label window. The search is a live search, so it will work as text is
+being entered. When the search window is closed (hidden), the highlighting
+will be undone and the query will be cleared.
+"""
 
 from ginga.qtw.QtHelp import QtGui, QtCore
 
 
 class LabelSearch(QtGui.QDialog):
+    """A simple search tool for text widgets."""
+
     def __init__(self, parent):
         super(LabelSearch, self).__init__(parent)
 
@@ -31,12 +32,12 @@ class LabelSearch(QtGui.QDialog):
 
         # This is a live search, so the only button needed is one to hide the
         # window.
-        ok_button = QtGui.QPushButton("Ok")
-        ok_button.clicked.connect(self.cancel)
+        self.ok_button = QtGui.QPushButton("Ok")
+        self.ok_button.clicked.connect(self.cancel)
 
         self.layout = QtGui.QVBoxLayout()
         self.layout.addWidget(self.find_field, 0, 0)
-        self.layout.addWidget(ok_button, 1, 0)
+        self.layout.addWidget(self.ok_button, 1, 0)
 
         self.setLayout(self.layout)
 
