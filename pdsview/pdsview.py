@@ -114,7 +114,7 @@ class PDSViewer(QtGui.QMainWindow):
         if self._label_window is not None:
             if self._label_window.is_open is True:
                 self.image_label = self.image.pds_image.labelview
-                self._label_window.labelContents.setText('\n'.join(self.image_label))
+                self._label_window.label_contents.setText('\n'.join(self.image_label))
                 self._label_window.cancel()
                 self._label_window.show()
                 self._label_window.activateWindow()
