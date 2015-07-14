@@ -1,18 +1,19 @@
-#
-# This module is a label viewer. At the moment, all it really does is display
-# the label and give the option to pull up a search window to search the text
-# in the label. When this window is hidden, the search query in the text finder
-# is cleared and that window is hidden as well if it is not already. Also, if
-# this window is left open, pdsview will automatically update the label field
-# so the label being displayed is always the label for the current product
-# being displayed.
-#
+"""This module is a label viewer. At the moment, all it really does is display
+the label and give the option to pull up a search window to search the text in
+the label. When this window is hidden, the search query in the text finder is
+cleared and that window is hidden as well if it is not already. Also, if this
+window is left open, pdsview will automatically update the label field so the
+label being displayed is always the label for the current product being
+displayed.
+"""
 
 from ginga.qtw.QtHelp import QtGui, QtCore
 import textfinder
 
 
 class LabelView(QtGui.QDialog):
+    """A PDS image label viewer."""
+
     def __init__(self, parent):
         super(LabelView, self).__init__(parent)
 
@@ -37,7 +38,7 @@ class LabelView(QtGui.QDialog):
         # Setting up the area where the label will be displayed.
         self.label_contents = QtGui.QTextEdit()
         self.label_contents.setReadOnly(True)
-        self.font = QtGui.QFont("Monaco")
+        self.font = QtGui.QFont("Courier")
         self.font.setPointSize(12)
         self.label_contents.setFont(self.font)
 
@@ -63,15 +64,14 @@ class LabelView(QtGui.QDialog):
         self.setLayout(self.layout)
 
     def finder_window(self):
-        # Make sure that there is only one instance of the dialog window.
+        """Check for a previously opened finder window and open/show it."""
         if self._finder_window is None:
             self._finder_window = textfinder.LabelSearch(self)
         self._finder_window.show()
         self._finder_window.activateWindow()
 
     def cancel(self):
-        # Clear the query field and hide the search dialog if it isn't
-        # already hidden.
+        """Hiding the label window and the finder window if open."""
         self.is_open = False
         if self._finder_window is not None:
             self._finder_window.cancel()
