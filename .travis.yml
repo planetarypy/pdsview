@@ -3,7 +3,6 @@
 language: python
 
 python:
-  - "3.3"
   - "2.7"
 before_install:
   - "export DISPLAY=:99.0"
@@ -34,4 +33,4 @@ install:
 
 # command to run tests, e.g. python setup.py test
 script:
-  - py.test
+  - py.test tests

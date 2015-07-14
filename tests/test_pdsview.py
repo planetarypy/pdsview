@@ -16,7 +16,7 @@ def test_window_cascade(qtbot):
     assert window.open_label.isEnabled() is False
 
     # Load test file and check the label button
-    window.load_file("./mission_data/1p190678905erp64kcp2600l8c1.img")
+    window.load_file("./tests/mission_data/1p190678905erp64kcp2600l8c1.img")
     assert window.open_label.isEnabled() is True
 
     # Open the label window and run appropriate checks
@@ -52,11 +52,11 @@ def test_label_refresh(qtbot):
     window = pdsview.PDSViewer()
     window.show()
     qtbot.addWidget(window)
-    window.load_file("./mission_data/1p190678905erp64kcp2600l8c1.img")
+    window.load_file("./tests/mission_data/1p190678905erp64kcp2600l8c1.img")
     qtbot.mouseClick(window.open_label, QtCore.Qt.LeftButton)
     assert window._label_window.label_contents.toPlainText()[188:192] == "1561"
 
-    window.load_file("./mission_data/2p129641989eth0361p2600r8m1.img")
+    window.load_file("./tests/mission_data/2p129641989eth0361p2600r8m1.img")
     assert window._label_window.label_contents.toPlainText()[193:196] == "332"
 
 
@@ -66,7 +66,7 @@ def test_label_load(qtbot):
     window = pdsview.PDSViewer()
     window.show()
     qtbot.addWidget(window)
-    window.load_file("./mission_data/1p190678905erp64kcp2600l8c1.img")
+    window.load_file("./tests/mission_data/1p190678905erp64kcp2600l8c1.img")
     qtbot.mouseClick(window.open_label, QtCore.Qt.LeftButton)
     assert window._label_window.label_contents.toPlainText()[188:192] == "1561"
 
