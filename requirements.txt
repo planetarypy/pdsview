@@ -4,5 +4,6 @@
 # Install our development requirements
 flake8
 pytest
+pytest-qt
 tox
 wheel==0.23.0
