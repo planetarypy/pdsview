@@ -30,6 +30,7 @@ install:
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION pyside astropy numpy
   - source activate test-environment
   - pip install -r requirements.txt
+  - get_mission_data
 
 # command to run tests, e.g. python setup.py test
 script:
