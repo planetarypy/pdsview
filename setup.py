@@ -35,7 +35,7 @@ setup(
     install_requires=[
         'ginga>=2.1',
         'planetaryimage>=0.1.0',
-        'PySide>=1.2.2',
+        'PySide>=1.2.0',
         'astropy>=1.0.2'
     ],
     license="BSD",
