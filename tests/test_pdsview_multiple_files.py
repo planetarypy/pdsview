@@ -22,25 +22,6 @@ def test_invalid_names():
     assert window.names[0] is "tests/mission_data/2m132591087cfd1800p2977m2f1.img"
 
 
-def test_invalid_filetype():
-    """ Verifies that arguments with invalid file extensions will be removed
-    from the loading list. Only files ending in ".img" or ".IMG" will be
-    accepted.
-    """
-    window = pdsview.PDSViewer()
-    window.show()
-#   This simulates sys.argv
-    arguments = ['/home/zburnham/.virtualenvs/pdsview/bin/pdsview',
-                 '1n137786085xyl2300p1981l0m1.rgb',
-                 'LCROSS_VSP_CAL_20091009113528839.TAB',
-                 'tests/mission_data/2m132591087cfd1800p2977m2f1.img']
-    window.parse_arguments(arguments)
-    assert window.open_label.isEnabled() is True
-    assert window.next_channel.isEnabled() is False
-    assert window.previous_channel.isEnabled() is False
-    assert window.names[0] is "tests/mission_data/2m132591087cfd1800p2977m2f1.img"
-
-
 def test_duplicates():
     """Verifies that duplicate files are removed from the loading list if they
     are entered as arguments when calling pdsview.
@@ -72,7 +53,7 @@ def test_image_next_switch(qtbot):
     arguments = ['/home/zburnham/.virtualenvs/pdsview/bin/pdsview',
                  'tests/mission_data/1p190678905erp64kcp2600l8c1.img',
                  'tests/mission_data/2m132591087cfd1800p2977m2f1.img',
-                 'tests/mission_data/1n129510489eff0312p1930l0m1.img']
+                 'tests/mission_data/2p129641989eth0361p2600r8m1.img']
     window.parse_arguments(arguments)
     assert window.open_label.isEnabled() is True
     assert window.next_channel.isEnabled() is True
@@ -86,9 +67,9 @@ def test_image_next_switch(qtbot):
     qtbot.mouseClick(window.next_channel, QtCore.Qt.LeftButton)
     assert window.loaded_file == "2m132591087cfd1800p2977m2f1.img"
 
-#   '1n1...' file
+#   '2p1...' file
     qtbot.mouseClick(window.next_channel, QtCore.Qt.LeftButton)
-    assert window.loaded_file == "1n129510489eff0312p1930l0m1.img"
+    assert window.loaded_file == "2p129641989eth0361p2600r8m1.img"
 
 #   back to the '1p1...' file
     qtbot.mouseClick(window.next_channel, QtCore.Qt.LeftButton)
@@ -108,7 +89,7 @@ def test_image_previous_switch(qtbot):
     arguments = ['/home/zburnham/.virtualenvs/pdsview/bin/pdsview',
                  'tests/mission_data/1p190678905erp64kcp2600l8c1.img',
                  'tests/mission_data/2m132591087cfd1800p2977m2f1.img',
-                 'tests/mission_data/1n129510489eff0312p1930l0m1.img']
+                 'tests/mission_data/2p129641989eth0361p2600r8m1.img']
     window.parse_arguments(arguments)
     assert window.open_label.isEnabled() is True
     assert window.next_channel.isEnabled() is True
@@ -118,9 +99,9 @@ def test_image_previous_switch(qtbot):
 #   '1p1...' file
     assert window.loaded_file == "1p190678905erp64kcp2600l8c1.img"
 
-#   jump to the '1n1...' file
+#   jump to the '2p1...' file
     qtbot.mouseClick(window.previous_channel, QtCore.Qt.LeftButton)
-    assert window.loaded_file == "1n129510489eff0312p1930l0m1.img"
+    assert window.loaded_file == "2p129641989eth0361p2600r8m1.img"
 
 #   '2m1...' file
     qtbot.mouseClick(window.previous_channel, QtCore.Qt.LeftButton)
@@ -143,16 +124,16 @@ def test_label_previous_switch(qtbot):
     arguments = ['/home/zburnham/.virtualenvs/pdsview/bin/pdsview',
                  'tests/mission_data/1p190678905erp64kcp2600l8c1.img',
                  'tests/mission_data/2p129641989eth0361p2600r8m1.img',
-                 'tests/mission_data/1n129510489eff0312p1930l0m1.img']
+                 'tests/mission_data/2m132591087cfd1800p2977m2f1.img']
     window.parse_arguments(arguments)
 
 #   '1p1...' file
     qtbot.mouseClick(window.open_label, QtCore.Qt.LeftButton)
     assert window._label_window.label_contents.toPlainText()[188:192] == "1561"
 
-#   jumps to the '1n1...' file
+#   jumps to the '2m1...' file
     qtbot.mouseClick(window.previous_channel, QtCore.Qt.LeftButton)
-    assert window._label_window.label_contents.toPlainText()[194:198] == "1043"
+    assert window._label_window.label_contents.toPlainText()[182:186] == "1029"
 
 #   '2p1...' file
     qtbot.mouseClick(window.previous_channel, QtCore.Qt.LeftButton)
@@ -176,7 +157,7 @@ def test_label_next_switch(qtbot):
     arguments = ['/home/zburnham/.virtualenvs/pdsview/bin/pdsview',
                  'tests/mission_data/1p190678905erp64kcp2600l8c1.img',
                  'tests/mission_data/2p129641989eth0361p2600r8m1.img',
-                 'tests/mission_data/1n129510489eff0312p1930l0m1.img']
+                 'tests/mission_data/2m132591087cfd1800p2977m2f1.img']
     window.parse_arguments(arguments)
 
 #   '1p1...' file
@@ -187,9 +168,9 @@ def test_label_next_switch(qtbot):
     qtbot.mouseClick(window.next_channel, QtCore.Qt.LeftButton)
     assert window._label_window.label_contents.toPlainText()[193:196] == "332"
 
-#   '1n1...' file
+#   '2m1...' file
     qtbot.mouseClick(window.next_channel, QtCore.Qt.LeftButton)
-    assert window._label_window.label_contents.toPlainText()[194:198] == "1043"
+    assert window._label_window.label_contents.toPlainText()[182:186] == "1029"
 
 #   jump to the original '1p1...' file
     qtbot.mouseClick(window.next_channel, QtCore.Qt.LeftButton)
