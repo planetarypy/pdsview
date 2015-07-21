@@ -4,7 +4,6 @@ import pytestqt
 from ginga.qtw.QtHelp import QtGui, QtCore
 
 
-# good
 def test_invalid_names():
     """Verifies that invalid file names will be removed from the loading list
     if they are entered as arguments when calling pdsview.
@@ -23,7 +22,6 @@ def test_invalid_names():
     assert window.names[0] is "tests/mission_data/2m132591087cfd1800p2977m2f1.img"
 
 
-# good
 def test_invalid_filetype():
     """ Verifies that arguments with invalid file extensions will be removed
     from the loading list. Only files ending in ".img" or ".IMG" will be
@@ -43,7 +41,6 @@ def test_invalid_filetype():
     assert window.names[0] is "tests/mission_data/2m132591087cfd1800p2977m2f1.img"
 
 
-# good
 def test_duplicates():
     """Verifies that duplicate files are removed from the loading list if they
     are entered as arguments when calling pdsview.
@@ -62,7 +59,6 @@ def test_duplicates():
     assert window.names[0] is "tests/mission_data/2m132591087cfd1800p2977m2f1.img"
 
 
-# good
 def test_image_next_switch(qtbot):
     """Verifies that pdsview will switch to the next image properly when 
     multiple images are loaded. Also verifies that pdsview will jump
@@ -99,7 +95,6 @@ def test_image_next_switch(qtbot):
     assert window.loaded_file == "1p190678905erp64kcp2600l8c1.img"
 
 
-# good
 def test_image_previous_switch(qtbot):
     """Verifies that pdsview will switch to the next image properly when
     multiple images are loaded. Also verifies that pdsview will jump
@@ -136,7 +131,6 @@ def test_image_previous_switch(qtbot):
     assert window.loaded_file == "1p190678905erp64kcp2600l8c1.img"
 
 
-# good
 def test_label_previous_switch(qtbot):
     """Verifies that the label will be properly updated when switching to the
     previous image in the set. Also verifies that the label updates properly

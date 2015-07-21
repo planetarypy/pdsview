@@ -86,7 +86,6 @@ class PDSViewer(QtGui.QMainWindow):
         self.setCentralWidget(vw)
         vw.setLayout(vertical_align)
 
-        print sys.argv
         self.parse_arguments(sys.argv)
 
     def parse_arguments(self, arguments):
@@ -109,7 +108,6 @@ class PDSViewer(QtGui.QMainWindow):
         self.verify_names()
         if(len(self.names) > 1):
             self.names = self.remove_duplicate_names(self.names)
-        print self.names
 
     def verify_names(self):
         """This method removes non-existant files and files with improper file
@@ -119,10 +117,12 @@ class PDSViewer(QtGui.QMainWindow):
         removal_list = []
         for name in self.names:
             if os.path.isfile(name) is not True:
+                # integrate with logger
                 print name, "cannot be located. Removing from list..."
                 removal_list.append(name)
                 removal_flag = 1
             elif name.endswith('.img') is not True and name.endswith('.IMG') is not True:
+                # integrate with logger
                 print name, "does not have a valid file extension. Removing from list..."
                 removal_list.append(name)
                 removal_flag = 1
@@ -182,6 +182,7 @@ class PDSViewer(QtGui.QMainWindow):
                 self.next_channel.setEnabled(False)
                 self.previous_channel.setEnabled(False)
         else:
+            # integrate with logger
             print "No file selected!"
             return
 
