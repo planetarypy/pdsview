@@ -8,35 +8,52 @@ try:
 except:
     from pdsview import label
 from glob import glob
-
 from ginga.qtw.QtHelp import QtGui, QtCore
 from ginga.qtw.ImageViewCanvasQt import ImageViewCanvas
 from ginga.BaseImage import BaseImage
 from planetaryimage import PDS3Image
+import argparse
 
 STD_FORMAT = '%(asctime)s | %(levelname)1.1s | %(filename)s:%(lineno)d (%(funcName)s) | %(message)s'
 #
 #
+app = QtGui.QApplication.instance()
+if not app:
+    app = QtGui.QApplication(sys.argv)
 
 
 class ImageStamp(BaseImage):
-    """Assign each image attributes below and set the image with data"""
+    """A ginga BaseImage object that will be displayed in PDSViewer.
+
+    Parameters
+    ----------
+    filepath: string
+        A file and its relative path from the current working directory
+
+    Attributes
+    ----------
+    file_name : string
+        The filename of the filepath
+    pds_image : planetaryimage object
+        A planetaryimage object
+    pds_compatible: bool
+        Indicates whether planetaryimage can open the file
+    """
     def __init__(self, filepath, data_np=None, metadata=None, logger=None):
         BaseImage.__init__(self, data_np=data_np, metadata=metadata,
                            logger=logger)
 
         self.file_name = os.path.basename(filepath)
         try:
-            pds_image = PDS3Image.open(filepath)
-            self.set_data(pds_image.data)
-            with open(filepath) as f:
+            self.pds_image = PDS3Image.open(filepath)
+            self.set_data(self.pds_image.data)
+            with open(filepath, 'rb') as f:
                 label_array = []
                 for lineno, line in enumerate(f):
-                    line = line.rstrip()
+                    line = line.decode().rstrip()
+                    label_array.append(line)
                     if line.strip() == 'END':
                         break
-
-                    label_array.append(line)
             self.label = label_array
             self.pds_compatible = True
         except:
@@ -47,9 +64,21 @@ class ImageStamp(BaseImage):
 
 
 class ImageSet(object):
-    """Create set of images to be displayed"""
+    """A set of ginga images to be displayed and methods to control the images.
+    
+    Parameters
+    ----------
+    filepaths: list
+        A list of filepaths to pass through ImageStamp
+
+    Attribute
+    ---------
+    images: list
+        A list of ginga images with attributes set in ImageStamp that can be
+        displayed in PDSViewer
+    """
     def __init__(self, filepaths):
-        # Remove any duplicates
+        # Remove any duplicate filepaths.
         seen = {}
         self.inlist = []
         for filepath in filepaths:
@@ -61,15 +90,15 @@ class ImageSet(object):
         # These objects contain the data ginga will use to display the image
         self.images = []
         for filepath in self.inlist:
-            self.image = ImageStamp(filepath)
-            if self.image.pds_compatible:
-                self.images.append(self.image)
+            image = ImageStamp(filepath)
+            if image.pds_compatible:
+                self.images.append(image)
         self.current_image_index = 0
         self.current_image = self.images[self.current_image_index]
         self.enable_next_previous()
 
     def enable_next_previous(self):
-        """Set whether the next and previous buttons are enabled"""
+        """Set whether the next and previous buttons are enabled."""
         if len(self.images) > 1:
             self.next_prev_enabled = True
         else:
@@ -92,7 +121,7 @@ class ImageSet(object):
         self.current_image = self.images[self.current_image_index]
 
     def append(self, new_file, dipslay_first_new_image):
-        """Append a new image to the images list if pds compatible"""
+        """Append a new image to the images list if it is pds compatible"""
         new_image = ImageStamp(new_file)
         if new_image.pds_compatible:
             self.images.append(new_image)
@@ -103,12 +132,16 @@ class ImageSet(object):
 
 
 class PDSViewer(QtGui.QMainWindow):
-    """Display a single image at a time with option specified in buttons"""
+    """A display of a single image with the option to view other images
+
+    Parameters
+    ----------
+    image_set: list
+        A list of ginga objects with attributes set in ImageStamp"""
 
     def __init__(self, image_set):
         super(PDSViewer, self).__init__()
 
-        self.images = image_set.images
         self.image_set = image_set
 
         # Set the subwindow names here. This implementation will help prevent
@@ -154,7 +187,6 @@ class PDSViewer(QtGui.QMainWindow):
         self.previous_channel.setEnabled(image_set.next_prev_enabled)
         self.open_label = QtGui.QPushButton("Label")
         self.open_label.clicked.connect(self.display_label)
-        # self.open_label.setEnabled(False)
         quit_button = QtGui.QPushButton("Quit")
         quit_button.clicked.connect(self.quit)
 
@@ -194,7 +226,7 @@ class PDSViewer(QtGui.QMainWindow):
         file_name.setFileMode(QtGui.QFileDialog.ExistingFiles)
         opens = file_name.getOpenFileNames(self, "Open IMG files", ".", filter)
         if(opens[1] != ""):
-            first_new_image = len(self.images)
+            first_new_image = len(self.image_set.images)
             new_files = opens[0]
             for new_file in new_files:
                 new_image = self.image_set.append(new_file, first_new_image)
@@ -230,9 +262,6 @@ class PDSViewer(QtGui.QMainWindow):
                 self._label_window.activateWindow()
 
         self.setWindowTitle(self.image_set.current_image.file_name)
-        # save this line for testing purposes
-        self.loaded_file = self.image_set.current_image.file_name
-        self.open_label.setEnabled(True)
 
     def drop_file(self, pdsimage, paths):
         """This function is not yet supported"""
@@ -247,20 +276,40 @@ class PDSViewer(QtGui.QMainWindow):
         self.close()
 
 
-def main():
+def pdsview(args=None):
+    """Run pdsview from python shell or command line with arguments"""
+    try:
+        if len(args.file) > 1:
+            files = args.file
+        elif len(args.file) == 1:
+            if os.path.isdir(args.file[0]):
+                files = glob(os.path.join(str(args.file[0]), '*'))
+            elif os.path.isfile(args.file[0]):
+                files = glob(str(args.file[0]))
+        else:
+            files = glob('*')
+    except AttributeError:
+        if os.path.isdir(args):
+            files = glob(os.path.join('%s' % (args), '*'))
+        elif args:
+            files = glob(args)
+        else:
+            files = glob('*')
 
-    filepaths = glob('*')
-
-    app = QtGui.QApplication(sys.argv)
-    image_set = ImageSet(filepaths)
-
+    image_set = ImageSet(files)
     w = PDSViewer(image_set)
     w.resize(780, 770)
     w.show()
     app.setActiveWindow(w)
-    w.raise_()
-    w.activateWindow()
-    app.exec_()
+    sys.exit(app.exec_())
 
-if __name__ == '__main__':
-    main()
+
+def cli():
+    """Give pystamps ability to run from command line"""
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        'file', nargs='*',
+        help="Input filename or glob for files with ceraint extensions"
+        )
+    args = parser.parse_args()
+    pdsview(args)
