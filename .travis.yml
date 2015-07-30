@@ -3,6 +3,9 @@
 language: python
 
 python:
+  - "3.4"
+  - "3.3"
+  - "2.6"
   - "2.7"
 before_install:
   - "export DISPLAY=:99.0"
