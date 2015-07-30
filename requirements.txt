@@ -1,3 +1,4 @@
+OrderedDict==1.1
 # Install pdsview itself
 -e .
 
