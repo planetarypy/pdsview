@@ -2,29 +2,114 @@
 
 import sys
 import os
-# import logging
-import PDSImage
-import label
+import logging
+try:
+    import label
+except:
+    from pdsview import label
+from glob import glob
 
 from ginga.qtw.QtHelp import QtGui, QtCore
 from ginga.qtw.ImageViewCanvasQt import ImageViewCanvas
+from ginga.BaseImage import BaseImage
+from planetaryimage import PDS3Image
 
 STD_FORMAT = '%(asctime)s | %(levelname)1.1s | %(filename)s:%(lineno)d (%(funcName)s) | %(message)s'
 #
 #
-# class PDSModel():
-#
+
+
+class ImageStamp(BaseImage):
+    """Assign each image attributes below and set the image with data"""
+    def __init__(self, filepath, data_np=None, metadata=None, logger=None):
+        BaseImage.__init__(self, data_np=data_np, metadata=metadata,
+                           logger=logger)
+
+        self.file_name = os.path.basename(filepath)
+        try:
+            pds_image = PDS3Image.open(filepath)
+            self.set_data(pds_image.data)
+            with open(filepath) as f:
+                label_array = []
+                for lineno, line in enumerate(f):
+                    line = line.rstrip()
+                    if line.strip() == 'END':
+                        break
+
+                    label_array.append(line)
+            self.label = label_array
+            self.pds_compatible = True
+        except:
+            self.pds_compatible = False
+
+    def __repr__(self):
+        return self.file_name
+
+
+class ImageSet(object):
+    """Create set of images to be displayed"""
+    def __init__(self, filepaths):
+        # Remove any duplicates
+        seen = {}
+        self.inlist = []
+        for filepath in filepaths:
+            if filepath not in seen:
+                seen[filepath] = 1
+                self.inlist.append(filepath)
+
+        # Create image objects with attributes set in ImageStamp
+        # These objects contain the data ginga will use to display the image
+        self.images = []
+        for filepath in self.inlist:
+            self.image = ImageStamp(filepath)
+            if self.image.pds_compatible:
+                self.images.append(self.image)
+        self.current_image_index = 0
+        self.current_image = self.images[self.current_image_index]
+        self.enable_next_previous()
+
+    def enable_next_previous(self):
+        """Set whether the next and previous buttons are enabled"""
+        if len(self.images) > 1:
+            self.next_prev_enabled = True
+        else:
+            self.next_prev_enabled = False
+
+    def next(self):
+        """Display next image, loop to first image if past the last image"""
+        try:
+            self.current_image_index += 1
+            self.current_image = self.images[self.current_image_index]
+        except:
+            self.current_image_index = 0
+            self.current_image = self.images[self.current_image_index]
+
+    def previous(self):
+        """Display previous image and loop to last image if past first image"""
+        self.current_image_index -= 1
+        if self.current_image_index < 0:
+            self.current_image_index = len(self.images) - 1
+        self.current_image = self.images[self.current_image_index]
+
+    def append(self, new_file, dipslay_first_new_image):
+        """Append a new image to the images list if pds compatible"""
+        new_image = ImageStamp(new_file)
+        if new_image.pds_compatible:
+            self.images.append(new_image)
+            self.enable_next_previous()
+            self.current_image_index = dipslay_first_new_image
+            self.current_image = self.images[self.current_image_index]
+        return new_image
 
 
 class PDSViewer(QtGui.QMainWindow):
+    """Display a single image at a time with option specified in buttons"""
 
-    def __init__(self):
+    def __init__(self, image_set):
         super(PDSViewer, self).__init__()
 
-        self.image = ""
-        self.index_count = 0
-        self.pos = 1
-        self.names = []
+        self.images = image_set.images
+        self.image_set = image_set
 
         # Set the subwindow names here. This implementation will help prevent
         # the main window from spawning duplicate children. Even if the
@@ -60,19 +145,23 @@ class PDSViewer(QtGui.QMainWindow):
         open_file = QtGui.QPushButton("Open File")
         open_file.clicked.connect(self.open_file)
         self.next_channel = QtGui.QPushButton("Next")
-        self.next_channel.clicked.connect(lambda: self.switch_channel(1))
-        self.next_channel.setEnabled(False)
+        self.next_channel.clicked.connect(
+            lambda: self.display_image(next_image=True))
+        self.next_channel.setEnabled(image_set.next_prev_enabled)
         self.previous_channel = QtGui.QPushButton("Previous")
-        self.previous_channel.clicked.connect(lambda: self.switch_channel(-1))
-        self.previous_channel.setEnabled(False)
+        self.previous_channel.clicked.connect(
+            lambda: self.display_image(previous_image=True))
+        self.previous_channel.setEnabled(image_set.next_prev_enabled)
         self.open_label = QtGui.QPushButton("Label")
-        self.open_label.clicked.connect(self.label)
-        self.open_label.setEnabled(False)
+        self.open_label.clicked.connect(self.display_label)
+        # self.open_label.setEnabled(False)
         quit_button = QtGui.QPushButton("Quit")
         quit_button.clicked.connect(self.quit)
 
         horizontal_align.addStretch(1)
-        for button in (self.previous_channel, self.next_channel, open_file, self.open_label, quit_button):
+        for button in (
+                self.previous_channel, self.next_channel,
+                open_file, self.open_label, quit_button):
             horizontal_align.addWidget(button, stretch=0)
 
         hw = QtGui.QWidget()
@@ -86,79 +175,12 @@ class PDSViewer(QtGui.QMainWindow):
         self.setCentralWidget(vw)
         vw.setLayout(vertical_align)
 
-        self.parse_arguments(sys.argv)
+        self.display_image()
 
-    def parse_arguments(self, arguments):
-        total = len(arguments)
-        if total is not 1:
-            for arg in arguments[1:total]:
-                self.names.append(arg)
-            self.name_check()
-            self.index_count = len(self.names)
-            if len(self.names) is not 1 and len(self.names) is not 0:
-                self.next_channel.setEnabled(True)
-                self.previous_channel.setEnabled(True)
-                self.switch_channel(0)
-            elif len(self.names) is 1:
-                self.load_file(self.names[0])
-                self.next_channel.setEnabled(False)
-                self.previous_channel.setEnabled(False)
-
-    def name_check(self):
-        self.verify_names()
-        if(len(self.names) > 1):
-            self.names = self.remove_duplicate_names(self.names)
-
-    def verify_names(self):
-        """This method removes non-existant files and files with improper file
-        extensions.
-        """
-        removal_flag = 0
-        removal_list = []
-        for name in self.names:
-            if os.path.isfile(name) is not True:
-                # integrate with logger
-                print name, "cannot be located. Removing from list..."
-                removal_list.append(name)
-                removal_flag = 1
-            elif name.endswith('.img') is not True and name.endswith('.IMG') is not True:
-                # integrate with logger
-                print name, "does not have a valid file extension. Removing from list..."
-                removal_list.append(name)
-                removal_flag = 1
-        if removal_flag is 1:
-            removal_list = self.remove_duplicate_names(removal_list)
-            for name in removal_list:
-                self.names.remove(name)
-            removal_flag = 0
-
-    def remove_duplicate_names(self, name_list):
-        """This function exists to remove duplicate items in lists. It also
-        preserves the order of the list.
-        """
-        seen = {}
-        result = []
-        for item in name_list:
-            marker = item
-            if marker in seen: 
-                print item, "is a duplicate. Removing from list..."
-                continue
-            seen[marker] = 1
-            result.append(item)
-        return result
-
-    def switch_channel(self, direction):
-        self.pos = self.pos + direction
-        if(self.pos > self.index_count):
-            self.pos = 1
-        elif(self.pos < 1):
-            self.pos = self.index_count
-        self.load_file(self.names[self.pos-1])
-
-    def label(self):
+    def display_label(self):
+        """Display the label over the image"""
         # Utilizing the subwindow variables to check if the label window has
         # been opened before. If not, the window is initialized.
-        self.image_label = self.image.pds_image.labelview
         if self._label_window is None:
             self._label_window = label.LabelView(self)
         self._label_window.is_open = True
@@ -166,54 +188,60 @@ class PDSViewer(QtGui.QMainWindow):
         self._label_window.activateWindow()
 
     def open_file(self):
+        """Open a new image file from a file explorer"""
         filter = "IMG files (*.IMG)"
         file_name = QtGui.QFileDialog()
         file_name.setFileMode(QtGui.QFileDialog.ExistingFiles)
         opens = file_name.getOpenFileNames(self, "Open IMG files", ".", filter)
         if(opens[1] != ""):
-            self.names = opens[0]
-            self.index_count = len(self.names)
-            if len(self.names) is not 1:
-                self.next_channel.setEnabled(True)
-                self.previous_channel.setEnabled(True)
-                self.switch_channel(0)
-            else:
-                self.load_file(self.names[0])
-                self.next_channel.setEnabled(False)
-                self.previous_channel.setEnabled(False)
+            first_new_image = len(self.images)
+            new_files = opens[0]
+            for new_file in new_files:
+                new_image = self.image_set.append(new_file, first_new_image)
+                if not(new_image.pds_compatible):
+                    print("%s is not PDS compatible" % (new_image.file_name))
+            self.next_channel.setEnabled(self.image_set.next_prev_enabled)
+            self.previous_channel.setEnabled(self.image_set.next_prev_enabled)
+            self.display_image()
         else:
             # integrate with logger
-            print "No file selected!"
+            print("No file selected!")
             return
 
-    def load_file(self, filepath):
-        self.image = PDSImage.PDSImage()
-        self.image.load_file(filepath)
-        self.pds_view.set_image(self.image)
+    def display_image(self, next_image=False, previous_image=False):
+        """Display the current image and/or label"""
+        if next_image:
+            self.image_set.next()
+        elif previous_image:
+            self.image_set.previous()
+        self.pds_view.set_image(self.image_set.current_image)
+        self.image_label = self.image_set.current_image.label
 
         # This checks to see if the label window exists and is open. If so,
         # this resets the label field so that the label being displayed is the
         # label for the current product.
         if self._label_window is not None:
-            if self._label_window.is_open is True:
-                self.image_label = self.image.pds_image.labelview
-                self._label_window.label_contents.setText('\n'.join(self.image_label))
+            label_text = '\n'.join(self.image_label)
+            self._label_window.label_contents.setText(label_text)
+            if self._label_window.is_open:
                 self._label_window.cancel()
                 self._label_window.show()
                 self._label_window.is_open = True
                 self._label_window.activateWindow()
 
-        print('File_Loaded')
-        self.setWindowTitle(filepath)
+        self.setWindowTitle(self.image_set.current_image.file_name)
         # save this line for testing purposes
-        self.loaded_file = os.path.basename(filepath)
+        self.loaded_file = self.image_set.current_image.file_name
         self.open_label.setEnabled(True)
 
     def drop_file(self, pdsimage, paths):
-        file_name = paths[0]
-        self.load_file(file_name)
+        """This function is not yet supported"""
+        # file_name = paths[0]
+        # self.load_file(file_name)
+        pass
 
     def quit(self, *args):
+        """Close pdsview"""
         if self._label_window is not None:
             self._label_window.cancel()
         self.close()
@@ -221,9 +249,12 @@ class PDSViewer(QtGui.QMainWindow):
 
 def main():
 
-    app = QtGui.QApplication(sys.argv)
+    filepaths = glob('*')
 
-    w = PDSViewer()
+    app = QtGui.QApplication(sys.argv)
+    image_set = ImageSet(filepaths)
+
+    w = PDSViewer(image_set)
     w.resize(780, 770)
     w.show()
     app.setActiveWindow(w)
