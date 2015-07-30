@@ -65,7 +65,7 @@ class ImageStamp(BaseImage):
 
 class ImageSet(object):
     """A set of ginga images to be displayed and methods to control the images.
-    
+
     Parameters
     ----------
     filepaths: list
