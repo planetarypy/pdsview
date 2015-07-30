@@ -23,8 +23,8 @@ FILE_5_NAME = '1p134482118erp0902p2600r8m1.img'
 FILE_6_NAME = '0047MH0000110010100214C00_DRCL.IMG'
 
 
-# Test that image stamp assigns correct attributes to pds compatible image
 def test_image_stamp_1():
+    """Test that ImageStamp sets correct attributes to pds compatible image"""
     test_image = pdsview.ImageStamp(FILE_1)
     assert test_image.file_name == FILE_1_NAME
     assert 'PDS' in test_image.label[0]
@@ -32,14 +32,15 @@ def test_image_stamp_1():
     assert test_image.pds_compatible
 
 
-# Test that image stamp assigns correct attributes to non pds compatible image
 def test_image_stamp_2():
+    """Test that ImageStamp sets correct attributes to pds compatible image"""
     test_image = pdsview.ImageStamp(FILE_6)
     assert test_image.file_name == FILE_6_NAME
     assert not(test_image.pds_compatible)
 
 
 def test_image_set_1():
+    """Test ImageSet with one pds compatible image"""
     filepaths = [FILE_4]
     test_set = pdsview.ImageSet(filepaths)
     assert len(test_set.images) > 0
@@ -50,6 +51,7 @@ def test_image_set_1():
 
 
 def test_image_set_2():
+    """Test duplicates removed & pds incompatible files not added to images"""
     filepaths = [FILE_4, FILE_4, FILE_5, FILE_6]
     test_set = pdsview.ImageSet(filepaths)
     # Test duplicates are deleted
@@ -64,6 +66,7 @@ def test_image_set_2():
 
 
 def test_image_set_next_method():
+    """Test the next method & that loops to beginning if at the last image"""
     filepaths = [FILE_3, FILE_4, FILE_5]
     test_set = pdsview.ImageSet(filepaths)
     assert test_set.current_image_index == 0
@@ -80,6 +83,7 @@ def test_image_set_next_method():
 
 
 def test_image_set_previous_method():
+    """Test the previous method & loops to end if at the first image"""
     filepaths = [FILE_3, FILE_4, FILE_5]
     test_set = pdsview.ImageSet(filepaths)
     assert test_set.current_image_index == 0
@@ -96,6 +100,7 @@ def test_image_set_previous_method():
 
 
 def test_image_set_append_method_1():
+    """Test append method with adding one image"""
     filepaths = [FILE_3, FILE_4, FILE_5]
     test_set = pdsview.ImageSet(filepaths)
     assert test_set.current_image_index == 0
@@ -111,6 +116,7 @@ def test_image_set_append_method_1():
 
 
 def test_image_set_append_method_2():
+    """Test append method with multiple images"""
     filepaths = [FILE_1]
     new_files = [FILE_2, FILE_3]
     test_set = pdsview.ImageSet(filepaths)
