@@ -22,7 +22,7 @@ class LabelError(QtGui.QDialog):
         self.confirm_button = QtGui.QPushButton("Ok")
         self.confirm_button.clicked.connect(self.confirm)
 
-       # Add the fields to the their layouts and add the layouts to the Qdialog
+        # Add the fields to the their layouts and the layouts to the Qdialog
         self.window_layout.addWidget(self.message_field, stretch=0)
         self.button_layout.addWidget(self.confirm_button)
         self.layout = QtGui.QGridLayout()

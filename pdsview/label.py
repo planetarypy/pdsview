@@ -8,7 +8,10 @@ displayed.
 """
 
 from ginga.qtw.QtHelp import QtGui, QtCore
-import textfinder
+try:
+    import textfinder
+except:
+    from pdsview import textfinder
 
 
 class LabelView(QtGui.QDialog):

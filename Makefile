@@ -38,9 +38,11 @@ lint:
 	flake8 pdsview tests
 
 test:
+	get_mission_data
 	py.test tests
 
 test-all:
+	get_mission_data
 	tox
 
 coverage:

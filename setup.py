@@ -55,7 +55,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'pdsview = pdsview.pdsview:main'
+            'pdsview = pdsview.pdsview:cli'
         ],
     }
 )
