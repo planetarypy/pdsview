@@ -240,7 +240,7 @@ class PDSViewer(QtGui.QMainWindow):
             y = pds_view.get_last_data_xy()[1]
             self.x_value.setText('X: %.0f' % (x))
             self.y_value.setText('Y: %.0f' % (y))
-            self.pixel_value.setText('Value: %s' % (str(0)))
+            self.pixel_value.setText('Value: 0')
 
     def stop_display_values(self, pds_view, button, data_x, data_y):
         "Disable the update of values when the mouse is released"
