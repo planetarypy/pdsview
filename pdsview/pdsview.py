@@ -144,10 +144,10 @@ class PDSViewer(QtGui.QMainWindow):
 
         self.image_set = image_set
 
-        # Set the subwindow names here. This implementation will help prevent
+        # Set the sub window names here. This implementation will help prevent
         # the main window from spawning duplicate children. Even if the
         # duplication prevention is not set up for a window, this will be a
-        # handy reference list of windows(or dialogues in most cases) that can
+        # handy reference list of windows(or dialogs in most cases) that can
         # be spawned out of this window.
         self._label_window = None
 
@@ -158,11 +158,11 @@ class PDSViewer(QtGui.QMainWindow):
         self.pds_view.set_callback('drag-drop', self.drop_file)
         self.pds_view.set_bg(0.5, 0.5, 0.5)
         self.pds_view.ui_setActive(True)
-        # Activate mouse click to display values
-        self.pds_view.set_callback('button-press', self.display_values)
-        # When button is released, values stop tracking
-        self.pds_view.set_callback('button-release', self.stop_display_values)
         self.pds_view.get_bindings().enable_all(True)
+        # Activate mouse click to display values
+        self.pds_view.set_callback('cursor-down', self.display_values)
+        # Activate click and drag to update values
+        self.pds_view.set_callback('cursor-move', self.display_values)
 
         pdsview_widget = self.pds_view.get_widget()
         pdsview_widget.resize(768, 768)
@@ -193,9 +193,9 @@ class PDSViewer(QtGui.QMainWindow):
         quit_button = QtGui.QPushButton("Quit")
         quit_button.clicked.connect(self.quit)
         # Set Text so the size of the boxes are at an appropriate size
-        self.x_value = QtGui.QLabel('X: ????')
-        self.y_value = QtGui.QLabel('Y: ????')
-        self.pixel_value = QtGui.QLabel('Value: WWWWW')
+        self.x_value = QtGui.QLabel('X: #####')
+        self.y_value = QtGui.QLabel('Y: #####')
+        self.pixel_value = QtGui.QLabel('R: ######, G: ###### B: ######')
         # Set format for each value box to be the same
         for value in(self.x_value, self.y_value, self.pixel_value):
             value.setFrameShape(QtGui.QFrame.Panel)
@@ -228,27 +228,32 @@ class PDSViewer(QtGui.QMainWindow):
 
     def display_values(self, pds_view, button, data_x, data_y):
         "Display the x, y, and pixel value when the mouse is pressed and moved"
-        pds_view.set_callback('motion', self.display_values)
         try:
             image = pds_view.get_image()
             value = image.get_data_xy(data_x, data_y)
             self.x_value.setText('X: %.0f' % (data_x))
             self.y_value.setText('Y: %.0f' % (data_y))
-            self.pixel_value.setText('Value: %s' % (str(round(value, 3))))
+            if self.image_set.current_image.ndim == 3:
+                R = str(round(value[0], 3))
+                G = str(round(value[0], 3))
+                B = str(round(value[0], 3))
+                self.pixel_value.setText('R: %s G: %s B: %s' % (R, G, B))
+            elif self.image_set.current_image.ndim == 2:
+                self.pixel_value.setText('Value: %s' % (str(round(value, 3))))
+
         except:
             x = pds_view.get_last_data_xy()[0]
             y = pds_view.get_last_data_xy()[1]
             self.x_value.setText('X: %.0f' % (x))
             self.y_value.setText('Y: %.0f' % (y))
-            self.pixel_value.setText('Value: 0')
-
-    def stop_display_values(self, pds_view, button, data_x, data_y):
-        "Disable the update of values when the mouse is released"
-        pds_view.delete_callback('motion')
+            if self.image_set.current_image.ndim == 3:
+                self.pixel_value.setText('R: 0 G: 0 B: 0')
+            elif self.image_set.current_image.ndim == 2:
+                self.pixel_value.setText('Value: 0')
 
     def display_label(self):
         """Display the label over the image"""
-        # Utilizing the subwindow variables to check if the label window has
+        # Utilizing the sub window variables to check if the label window has
         # been opened before. If not, the window is initialized.
         if self._label_window is None:
             self._label_window = label.LabelView(self)
@@ -286,7 +291,10 @@ class PDSViewer(QtGui.QMainWindow):
         # Reset the value boxes
         self.x_value.setText('X: ????')
         self.y_value.setText('Y: ????')
-        self.pixel_value.setText('Value: ????')
+        if self.image_set.current_image.ndim == 3:
+            self.pixel_value.setText('R: ???? G: ???? B: ????')
+        elif self.image_set.current_image.ndim == 2:
+            self.pixel_value.setText('Value: ????')
         # Set the current image
         self.pds_view.set_image(self.image_set.current_image)
         self.image_label = self.image_set.current_image.label
