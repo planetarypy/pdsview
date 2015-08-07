@@ -86,8 +86,8 @@ def test_display_values(qtbot):
     assert window.x_value.text() == 'X: ????'
     assert window.y_value.text() == 'Y: ????'
     assert window.pixel_value.text() == 'Value: ????'
-    assert window.pds_view.has_callback('button-press')
-    assert window.pds_view.has_callback('button-release')
+    assert window.pds_view.has_callback('cursor-down')
+    assert window.pds_view.has_callback('cursor-down')
     # Test the text changes to the rounded value
     window.display_values(window.pds_view, QtCore.Qt.LeftButton, 10.4, 50.6)
     assert window.x_value.text() == 'X: 10'
@@ -98,11 +98,6 @@ def test_display_values(qtbot):
     except:
         assert window.pixel_value.text() == 'Value: 23'
     assert window.pds_view.has_callback('motion')
-    window.stop_display_values(window.pds_view, QtCore.Qt.LeftButton, 12, 80)
-    # Test that stop_display_values method only changes callback('motion')
-    assert window.x_value.text() == 'X: 10'
-    assert window.y_value.text() == 'Y: 51'
-    assert not(window.pds_view.has_callback('motion'))
     # Test Values go back to default after switching images
     qtbot.mouseClick(window.next_channel, QtCore.Qt.LeftButton)
     assert window.x_value.text() == 'X: ????'
@@ -117,10 +112,10 @@ def test_display_values(qtbot):
         assert window.pixel_value.text() == 'Value: 15.0'
     except:
         assert window.pixel_value.text() == 'Value: 15'
-    assert window.pds_view.has_callback('motion')
     # Test when clicking outside the image
     window.display_values(window.pds_view, QtCore.Qt.LeftButton, 100, 200)
     assert window.pixel_value.text() == 'Value: 0'
     # TODO test that the X/Y values changed as well, right now qtbot and ginga
     # are having trouble communicating where/which widget is clicked so the
     # values do not update correctly
+    # TODO test with a 3 band color image
