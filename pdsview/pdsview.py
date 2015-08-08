@@ -144,10 +144,10 @@ class PDSViewer(QtGui.QMainWindow):
 
         self.image_set = image_set
 
-        # Set the subwindow names here. This implementation will help prevent
+        # Set the sub window names here. This implementation will help prevent
         # the main window from spawning duplicate children. Even if the
         # duplication prevention is not set up for a window, this will be a
-        # handy reference list of windows(or dialogues in most cases) that can
+        # handy reference list of windows(or dialogs in most cases) that can
         # be spawned out of this window.
         self._label_window = None
 
@@ -158,8 +158,11 @@ class PDSViewer(QtGui.QMainWindow):
         self.pds_view.set_callback('drag-drop', self.drop_file)
         self.pds_view.set_bg(0.5, 0.5, 0.5)
         self.pds_view.ui_setActive(True)
-
         self.pds_view.get_bindings().enable_all(True)
+        # Activate mouse click to display values
+        self.pds_view.set_callback('cursor-down', self.display_values)
+        # Activate click and drag to update values
+        self.pds_view.set_callback('cursor-move', self.display_values)
 
         pdsview_widget = self.pds_view.get_widget()
         pdsview_widget.resize(768, 768)
@@ -189,11 +192,25 @@ class PDSViewer(QtGui.QMainWindow):
         self.open_label.clicked.connect(self.display_label)
         quit_button = QtGui.QPushButton("Quit")
         quit_button.clicked.connect(self.quit)
+        # Set Text so the size of the boxes are at an appropriate size
+        self.x_value = QtGui.QLabel('X: #####')
+        self.y_value = QtGui.QLabel('Y: #####')
+        self.pixel_value = QtGui.QLabel('R: ######, G: ###### B: ######')
+        # Set format for each value box to be the same
+        for value in(self.x_value, self.y_value, self.pixel_value):
+            value.setFrameShape(QtGui.QFrame.Panel)
+            value.setFrameShadow(QtGui.QFrame.Sunken)
+            value.setLineWidth(3)
+            value.setMidLineWidth(1)
+            value.setAlignment(QtCore.Qt.AlignBottom | QtCore.Qt.AlignLeft)
+            value.setMinimumSize(value.sizeHint())
+            value.setMaximumSize(value.sizeHint())
 
         horizontal_align.addStretch(1)
         for button in (
-                self.previous_channel, self.next_channel,
-                open_file, self.open_label, quit_button):
+                self.x_value, self.y_value, self.pixel_value,
+                self.previous_channel, self.next_channel, open_file,
+                self.open_label, quit_button):
             horizontal_align.addWidget(button, stretch=0)
 
         hw = QtGui.QWidget()
@@ -209,9 +226,34 @@ class PDSViewer(QtGui.QMainWindow):
 
         self.display_image()
 
+    def display_values(self, pds_view, button, data_x, data_y):
+        "Display the x, y, and pixel value when the mouse is pressed and moved"
+        try:
+            image = pds_view.get_image()
+            value = image.get_data_xy(data_x, data_y)
+            self.x_value.setText('X: %.0f' % (data_x))
+            self.y_value.setText('Y: %.0f' % (data_y))
+            if self.image_set.current_image.ndim == 3:
+                R = str(round(value[0], 3))
+                G = str(round(value[0], 3))
+                B = str(round(value[0], 3))
+                self.pixel_value.setText('R: %s G: %s B: %s' % (R, G, B))
+            elif self.image_set.current_image.ndim == 2:
+                self.pixel_value.setText('Value: %s' % (str(round(value, 3))))
+
+        except:
+            x = pds_view.get_last_data_xy()[0]
+            y = pds_view.get_last_data_xy()[1]
+            self.x_value.setText('X: %.0f' % (x))
+            self.y_value.setText('Y: %.0f' % (y))
+            if self.image_set.current_image.ndim == 3:
+                self.pixel_value.setText('R: 0 G: 0 B: 0')
+            elif self.image_set.current_image.ndim == 2:
+                self.pixel_value.setText('Value: 0')
+
     def display_label(self):
         """Display the label over the image"""
-        # Utilizing the subwindow variables to check if the label window has
+        # Utilizing the sub window variables to check if the label window has
         # been opened before. If not, the window is initialized.
         if self._label_window is None:
             self._label_window = label.LabelView(self)
@@ -246,6 +288,14 @@ class PDSViewer(QtGui.QMainWindow):
             self.image_set.next()
         elif previous_image:
             self.image_set.previous()
+        # Reset the value boxes
+        self.x_value.setText('X: ????')
+        self.y_value.setText('Y: ????')
+        if self.image_set.current_image.ndim == 3:
+            self.pixel_value.setText('R: ???? G: ???? B: ????')
+        elif self.image_set.current_image.ndim == 2:
+            self.pixel_value.setText('Value: ????')
+        # Set the current image
         self.pds_view.set_image(self.image_set.current_image)
         self.image_label = self.image_set.current_image.label
 
@@ -276,25 +326,62 @@ class PDSViewer(QtGui.QMainWindow):
         self.close()
 
 
-def pdsview(args=None):
-    """Run pdsview from python shell or command line with arguments"""
-    try:
-        if len(args.file) > 1:
-            files = args.file
-        elif len(args.file) == 1:
-            if os.path.isdir(args.file[0]):
-                files = glob(os.path.join(str(args.file[0]), '*'))
-            elif os.path.isfile(args.file[0]):
-                files = glob(str(args.file[0]))
+def pdsview(inlist=None):
+    """Run pdsview from python shell or command line with arguments
+
+    Examples
+    --------
+
+    From the command line:
+
+    To view all images from current directory
+
+    pdsview
+
+    To view all images in a different directory
+
+    pdsview path/to/different/directory/
+
+    This is the same as:
+
+    pdsview path/to/different/directory/*
+
+    To view a specific image or types of images
+
+    pdsview 1p*img
+
+    To view images from multiple directories:
+
+    pdsview * path/to/other/directory/
+
+    From the (i)python command line:
+
+    >>> from pdsview.pdsview import pdsview
+    >>> pdsview()
+    Displays all of the images from current directory
+    >>> pdsview('path/to/different/directory')
+    Displays all of the images in the different directory
+    >>> pdsview ('1p*img')
+    Displays all of the images that follow the glob pattern
+    >>> pdsview ('a1.img, b*.img, example/path/x*img')
+    You can display multiple images, globs, and paths in one window by
+    separating each item by a command
+    >>> pdsview (['a1.img, b3.img, c1.img, d*img'])
+    You can also pass in a list of files/globs
+    """
+    files = []
+    if isinstance(inlist, list):
+        if inlist:
+            for item in inlist:
+                files += arg_parser(item)
         else:
             files = glob('*')
-    except AttributeError:
-        if os.path.isdir(args):
-            files = glob(os.path.join('%s' % (args), '*'))
-        elif args:
-            files = glob(args)
-        else:
-            files = glob('*')
+    elif isinstance(inlist, str):
+        names = inlist.split(',')
+        for name in names:
+            files = files + arg_parser(name.strip())
+    elif inlist is None:
+        files = glob('*')
 
     image_set = ImageSet(files)
     w = PDSViewer(image_set)
@@ -304,12 +391,22 @@ def pdsview(args=None):
     sys.exit(app.exec_())
 
 
+def arg_parser(args):
+    if os.path.isdir(args):
+        files = glob(os.path.join('%s' % (args), '*'))
+    elif args:
+        files = glob(args)
+    else:
+        files = glob('*')
+    return files
+
+
 def cli():
-    """Give pystamps ability to run from command line"""
+    """Give pdsview ability to run from command line"""
     parser = argparse.ArgumentParser()
     parser.add_argument(
         'file', nargs='*',
-        help="Input filename or glob for files with ceraint extensions"
+        help="Input filename or glob for files with certain extensions"
         )
     args = parser.parse_args()
-    pdsview(args)
+    pdsview(args.file)

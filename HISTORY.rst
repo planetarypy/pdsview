@@ -3,6 +3,13 @@
 History
 -------
 
+0.3.0 (2015-08-03)
+---------------------
+
+* Reworked to use an ImageSet and ImageStamp model to improve program flow and
+  permit launching from other programs.
+
+
 0.2.0 (2015-07-28)
 ---------------------
 
