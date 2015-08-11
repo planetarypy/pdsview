@@ -38,8 +38,8 @@ class ImageStamp(BaseImage):
         A planetaryimage object
     label : array
         The images label in an array
-    cuts : tuple
-        The
+    cuts : tuple (int, int)
+        The min and max pixel value scaling
     sarr : numpy array
         The color map of the array in an array
     zoom : float
