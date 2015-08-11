@@ -36,7 +36,20 @@ class ImageStamp(BaseImage):
         The filename of the filepath
     pds_image : planetaryimage object
         A planetaryimage object
-    pds_compatible: bool
+    label : array
+        The images label in an array
+    cuts : tuple
+        The
+    sarr : numpy array
+        The color map of the array in an array
+    zoom : float
+        Zoom level of the image
+    rotation : float
+        The degrees the image is rotated
+    transforms : tuple (bool, bool, bool)
+        Whether the image is flipped across the x-axis, y-axis, or x/y is
+        switched
+    pds_compatible : bool
         Indicates whether planetaryimage can open the file
     """
     def __init__(self, filepath, data_np=None, metadata=None, logger=None):
@@ -55,6 +68,12 @@ class ImageStamp(BaseImage):
                     if line.strip() == 'END':
                         break
             self.label = label_array
+            self.cuts = None
+            self.sarr = None
+            self.zoom = None
+            self.rotation = None
+            self.transforms = None
+            self.not_been_displayed = True
             self.pds_compatible = True
         except:
             self.pds_compatible = False
@@ -73,9 +92,13 @@ class ImageSet(object):
 
     Attribute
     ---------
-    images: list
+    images : list
         A list of ginga images with attributes set in ImageStamp that can be
         displayed in PDSViewer
+    current_image : ImageStamp object
+        The currently displayed image
+    current_image_index : int
+        Index value of the current image
     """
     def __init__(self, filepaths):
         # Remove any duplicate filepaths.
@@ -152,14 +175,14 @@ class PDSViewer(QtGui.QMainWindow):
         self._label_window = None
 
         self.pds_view = ImageViewCanvas(render='widget')
-        self.pds_view.enable_autocuts('on')
         self.pds_view.set_autocut_params('zscale')
-        self.pds_view.enable_autozoom('on')
+        self.pds_view.enable_autozoom('override')
+        self.pds_view.enable_autocuts('override')
         self.pds_view.set_callback('drag-drop', self.drop_file)
         self.pds_view.set_bg(0.5, 0.5, 0.5)
         self.pds_view.ui_setActive(True)
         self.pds_view.get_bindings().enable_all(True)
-        # Activate mouse click to display values
+        # Activate left mouse click to display values
         self.pds_view.set_callback('cursor-down', self.display_values)
         # Activate click and drag to update values
         self.pds_view.set_callback('cursor-move', self.display_values)
@@ -229,19 +252,24 @@ class PDSViewer(QtGui.QMainWindow):
     def display_values(self, pds_view, button, data_x, data_y):
         "Display the x, y, and pixel value when the mouse is pressed and moved"
         try:
+            # When clicking inside the image
             image = pds_view.get_image()
-            value = image.get_data_xy(data_x, data_y)
-            self.x_value.setText('X: %.0f' % (data_x))
-            self.y_value.setText('Y: %.0f' % (data_y))
+            x = round(data_x, 0)
+            y = round(data_y, 0)
+            value = image.get_data_xy(x, y)
+            self.x_value.setText('X: %.0f' % (x))
+            self.y_value.setText('Y: %.0f' % (y))
             if self.image_set.current_image.ndim == 3:
+                # Show different band values for 3 band images
                 R = str(round(value[0], 3))
-                G = str(round(value[0], 3))
-                B = str(round(value[0], 3))
+                G = str(round(value[1], 3))
+                B = str(round(value[2], 3))
                 self.pixel_value.setText('R: %s G: %s B: %s' % (R, G, B))
             elif self.image_set.current_image.ndim == 2:
+                # Show single pixel value for 2 band images
                 self.pixel_value.setText('Value: %s' % (str(round(value, 3))))
-
         except:
+            # When clicking outside the image
             x = pds_view.get_last_data_xy()[0]
             y = pds_view.get_last_data_xy()[1]
             self.x_value.setText('X: %.0f' % (x))
@@ -284,20 +312,44 @@ class PDSViewer(QtGui.QMainWindow):
 
     def display_image(self, next_image=False, previous_image=False):
         """Display the current image and/or label"""
+        # Catch parameters before switching
+        last_image = self.image_set.current_image
+        last_image.sarr = self.pds_view.get_rgbmap().get_sarr()
+        last_image.zoom = self.pds_view.get_zoom()
+        last_image.rotation = self.pds_view.get_rotation()
+        last_image.transforms = self.pds_view.get_transforms()
+        last_image.cuts = self.pds_view.get_cut_levels()
+
+        # Switch image
         if next_image:
             self.image_set.next()
         elif previous_image:
             self.image_set.previous()
+        current_image = self.image_set.current_image
+
         # Reset the value boxes
         self.x_value.setText('X: ????')
         self.y_value.setText('Y: ????')
-        if self.image_set.current_image.ndim == 3:
+        if current_image.ndim == 3:
             self.pixel_value.setText('R: ???? G: ???? B: ????')
-        elif self.image_set.current_image.ndim == 2:
+        elif current_image.ndim == 2:
             self.pixel_value.setText('Value: ????')
-        # Set the current image
-        self.pds_view.set_image(self.image_set.current_image)
-        self.image_label = self.image_set.current_image.label
+
+        # Display image in viewer
+        if current_image.not_been_displayed:
+            # If it is the first time the image is shown, show with defaults
+            self.pds_view.set_image(current_image, redraw=False)
+            self.restore()
+            self.pds_view.delayed_redraw()
+            current_image.not_been_displayed = False
+        else:
+            # Set the current image with the images last parameters
+            self.pds_view.set_image(current_image, redraw=False)
+            self.apply_parameters(current_image, self.pds_view)
+            self.pds_view.delayed_redraw()
+
+        # Update label
+        self.image_label = current_image.label
 
         # This checks to see if the label window exists and is open. If so,
         # this resets the label field so that the label being displayed is the
@@ -312,6 +364,43 @@ class PDSViewer(QtGui.QMainWindow):
                 self._label_window.activateWindow()
 
         self.setWindowTitle(self.image_set.current_image.file_name)
+
+    def apply_parameters(self, image, view):
+        """Display image with the images parameters"""
+        if image.sarr is None:
+            pass
+        else:
+            view.get_rgbmap().set_sarr(image.sarr)
+        if image.zoom is None:
+            pass
+        else:
+            view.zoom_to(image.zoom)
+        if image.rotation is None:
+            pass
+        else:
+            view.rotate(image.rotation)
+        if image.transforms is None:
+            pass
+        else:
+            flip_x = image.transforms[0]
+            flip_y = image.transforms[1]
+            switch_xy = image.transforms[2]
+            view.transform(flip_x, flip_y, switch_xy)
+        if image.cuts is None:
+            pass
+        else:
+            loval, hival = image.cuts
+            view.cut_levels(loval, hival, True)
+
+    def restore(self, pds_view=None, button=None, data_x=None, data_y=None):
+        """Restore image to the default settings"""
+        self.pds_view.get_rgbmap().reset_sarr()
+        self.pds_view.enable_autocuts('on')
+        self.pds_view.auto_levels()
+        self.pds_view.enable_autocuts('override')
+        self.pds_view.rotate(0.0)
+        self.pds_view.transform(False, False, False)
+        self.pds_view.zoom_fit()
 
     def drop_file(self, pdsimage, paths):
         """This function is not yet supported"""
