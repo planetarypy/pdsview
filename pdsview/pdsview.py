@@ -13,6 +13,8 @@ from ginga.qtw.ImageViewCanvasQt import ImageViewCanvas
 from ginga.BaseImage import BaseImage
 from planetaryimage import PDS3Image
 import argparse
+import math
+import numpy
 
 STD_FORMAT = '%(asctime)s | %(levelname)1.1s | %(filename)s:%(lineno)d (%(funcName)s) | %(message)s'
 #
@@ -29,6 +31,7 @@ class ImageStamp(BaseImage):
     ----------
     filepath: string
         A file and its relative path from the current working directory
+
 
     Attributes
     ----------
@@ -74,13 +77,15 @@ class ImageStamp(BaseImage):
             self.rotation = None
             self.transforms = None
             self.not_been_displayed = True
+            self.draw_obj = None
+            self.ROI_area = None
+            self.ROI_data = None
             self.pds_compatible = True
         except:
             self.pds_compatible = False
 
     def __repr__(self):
         return self.file_name
-
 
 class ImageSet(object):
     """A set of ginga images to be displayed and methods to control the images.
@@ -153,6 +158,42 @@ class ImageSet(object):
             self.current_image = self.images[self.current_image_index]
         return new_image
 
+    def ROI_data(self, left, bottom, right, top):
+        return self.current_image.cutout_data(
+            math.ceil(left), math.ceil(bottom), math.ceil(right),
+            math.ceil(top))
+
+    def ROI_pixels(self, left, bottom, right, top):
+        return (right - left) * (top - bottom)
+
+    def ROI_std_dev(self, left=None, bottom=None, right=None, top=None,
+                    data=None):
+        if data is None:
+            data = self.ROI_data(left, bottom, right, top)
+        return round(numpy.std(data), 6)
+
+    def ROI_mean(self, left=None, bottom=None, right=None, top=None,
+                 data=None):
+        if data is None:
+            data = self.ROI_data(left, bottom, right, top)
+        return round(numpy.mean(data), 4)
+
+    def ROI_median(self, left=None, bottom=None, right=None, top=None,
+                   data=None):
+        if data is None:
+            data = self.ROI_data(left, bottom, right, top)
+        return numpy.median(data)
+
+    def ROI_min(self, left=None, bottom=None, right=None, top=None, data=None):
+        if data is None:
+            data = self.ROI_data(left, bottom, right, top)
+        return numpy.nanmin(data)
+
+    def ROI_max(self, left=None, bottom=None, right=None, top=None, data=None):
+        if data is None:
+            data = self.ROI_data(left, bottom, right, top)
+        return numpy.nanmax(data)
+
 
 class PDSViewer(QtGui.QMainWindow):
     """A display of a single image with the option to view other images
@@ -186,6 +227,10 @@ class PDSViewer(QtGui.QMainWindow):
         self.pds_view.set_callback('cursor-down', self.display_values)
         # Activate click and drag to update values
         self.pds_view.set_callback('cursor-move', self.display_values)
+        self.pds_view.set_callback('draw-down', self.start_ROI)
+        self.pds_view.set_callback('draw-up', self.stop_ROI)
+        self.pds_view.enable_draw(True)
+        self.pds_view.set_drawtype('rectangle')
 
         pdsview_widget = self.pds_view.get_widget()
         pdsview_widget.resize(768, 768)
@@ -219,15 +264,6 @@ class PDSViewer(QtGui.QMainWindow):
         self.x_value = QtGui.QLabel('X: #####')
         self.y_value = QtGui.QLabel('Y: #####')
         self.pixel_value = QtGui.QLabel('R: ######, G: ###### B: ######')
-        # Set format for each value box to be the same
-        for value in(self.x_value, self.y_value, self.pixel_value):
-            value.setFrameShape(QtGui.QFrame.Panel)
-            value.setFrameShadow(QtGui.QFrame.Sunken)
-            value.setLineWidth(3)
-            value.setMidLineWidth(1)
-            value.setAlignment(QtCore.Qt.AlignBottom | QtCore.Qt.AlignLeft)
-            value.setMinimumSize(value.sizeHint())
-            value.setMaximumSize(value.sizeHint())
 
         horizontal_align.addStretch(1)
         for button in (
@@ -235,10 +271,46 @@ class PDSViewer(QtGui.QMainWindow):
                 self.previous_channel, self.next_channel, open_file,
                 self.open_label, quit_button):
             horizontal_align.addWidget(button, stretch=0)
+        # Region of Interest boxes
+        self.pixels = QtGui.QLabel('#Pixels: #######')
+        self.std_dev = QtGui.QLabel(
+            'Std Dev: R: ######### G: ######### B: #########')
+        self.mean = QtGui.QLabel(
+            'Mean: R: ######## G: ######## B: ########')
+        self.median = QtGui.QLabel(
+            'Median: R: ######## G: ######## B: ########')
+        self.min = QtGui.QLabel('Min: R: ### G: ### B: ###')
+        self.max = QtGui.QLabel('Max: R: ### G: ### B: ###')
+        # Set format for each information box to be the same
+        for info_box in (self.x_value, self.y_value, self.pixel_value,
+                         self.pixels, self.std_dev, self.mean, self.median,
+                         self.min, self.max):
+            info_box.setFrameShape(QtGui.QFrame.Panel)
+            info_box.setFrameShadow(QtGui.QFrame.Sunken)
+            info_box.setLineWidth(3)
+            info_box.setMidLineWidth(1)
+            info_box.setAlignment(QtCore.Qt.AlignBottom | QtCore.Qt.AlignLeft)
+            info_box.setMinimumSize(info_box.sizeHint())
+            info_box.setMaximumSize(info_box.sizeHint())
+
+        horizontal_align_2 = QtGui.QHBoxLayout()
+        horizontal_align_2.setContentsMargins(QtCore.QMargins(4, 2, 4, 2))
+        for roi in (self.pixels, self.std_dev, self.mean):
+            horizontal_align_2.addWidget(roi)
+        horizontal_align_3 = QtGui.QHBoxLayout()
+        horizontal_align_3.setContentsMargins(QtCore.QMargins(4, 2, 4, 2))
+        for roi in (self.median, self.min, self.max):
+            horizontal_align_3.addWidget(roi)
 
         hw = QtGui.QWidget()
         hw.setLayout(horizontal_align)
+        hw_2 = QtGui.QWidget()
+        hw_2.setLayout(horizontal_align_2)
+        hw_3 = QtGui.QWidget()
+        hw_3.setLayout(horizontal_align_3)
         vertical_align.addWidget(hw, stretch=0)
+        vertical_align.addWidget(hw_2, stretch=0)
+        vertical_align.addWidget(hw_3, stretch=0)
         self.vertical_align = vertical_align
         self.horizontal_align = horizontal_align
         self.pdsview_widget = pdsview_widget
@@ -341,12 +413,17 @@ class PDSViewer(QtGui.QMainWindow):
             self.pds_view.set_image(current_image, redraw=False)
             self.restore()
             self.pds_view.delayed_redraw()
-            current_image.not_been_displayed = False
         else:
             # Set the current image with the images last parameters
             self.pds_view.set_image(current_image, redraw=False)
             self.apply_parameters(current_image, self.pds_view)
             self.pds_view.delayed_redraw()
+
+        if len(self.pds_view.objects) > 1:
+            self.stop_ROI(self.pds_view, None, None, None)
+            self.pds_view.update_canvas()
+        else:
+            self.set_ROI_text(0, 0, current_image.width, current_image.height)
 
         # Update label
         self.image_label = current_image.label
@@ -392,15 +469,296 @@ class PDSViewer(QtGui.QMainWindow):
             loval, hival = image.cuts
             view.cut_levels(loval, hival, True)
 
-    def restore(self, pds_view=None, button=None, data_x=None, data_y=None):
+    def restore(self):
         """Restore image to the default settings"""
         self.pds_view.get_rgbmap().reset_sarr()
         self.pds_view.enable_autocuts('on')
         self.pds_view.auto_levels()
         self.pds_view.enable_autocuts('override')
         self.pds_view.rotate(0.0)
+        # The default transform/rotation of the image will be image specific so
+        # transform will change in the future
         self.pds_view.transform(False, False, False)
         self.pds_view.zoom_fit()
+
+    def start_ROI(self, pds_view, button, data_x, data_y):
+        """Ensure only one Region of Interest (ROI) exists at a time
+
+        Note
+        ----
+        This method is called when the right mouse button is pressed. Even
+        though the arguments are not used, they are necessary to catch the
+        right mouse button press event.
+
+        Parameters
+        ----------
+        pds_view : ImageViewCanvas object
+            The view that displays the image
+        button : Qt.RightButton
+            The right mouse button
+        data_x : float
+            The x-value of the location of the right button
+        data_y : float
+            The y-value of the location of the right button
+
+        """
+
+        if len(pds_view.objects) > 1:
+            self.delete_ROI()
+
+    def stop_ROI(self, pds_view, button, data_x, data_y):
+        """Create a Region of Interest (ROI)
+
+        When drawing stops (release of the right mouse button), the ROI border
+        snaps to inclusive pixel (see top_right_pixel_snap and
+        bot_left_pixel_snap). The ROI's information is set as an attributes of
+        the current image (see calculate_ROI_info).
+
+        Note
+        ----
+        This method is called when the right mouse button is released. Even
+        though only the pds_view argument is used, they are all necessary to
+        catch the right mouse button release event.
+
+        Parameters
+        ----------
+        See start_ROI parameters
+
+        """
+
+        # If there are no draw objects, stop
+        if len(pds_view.objects) == 1:
+            return
+
+        current_image = self.image_set.current_image
+        draw_obj = pds_view.objects[1]
+        current_image.draw_obj = draw_obj
+
+        # Retrieve the left, right, top, & bottom x and y values
+        roi = self.left_right_bottom_top(
+            draw_obj.x1, draw_obj.x2, draw_obj.y1, draw_obj.y2)
+        left_x, right_x, bot_y, top_y, x2_is_right, y2_is_top = roi
+
+        # Single right click deletes any ROI & sets the whole image as the ROI
+        if left_x == right_x and bot_y == top_y:
+            self.set_ROI_text(0, 0, current_image.width, current_image.height)
+            self.delete_ROI()
+            return
+
+        # Determine if the ROI is outside the image.
+        max_height = current_image.height
+        max_width = current_image.width
+        top_y, top_in_image = self.top_right_pixel_snap(top_y, max_height)
+        bot_y, bot_in_image = self.bot_left_pixel_snap(bot_y, max_height)
+        right_x, right_in_image = self.top_right_pixel_snap(right_x, max_width)
+        left_x, left_in_image = self.bot_left_pixel_snap(left_x, max_width)
+
+        # If the entire ROI is outside the ROI, delete the ROI and set the ROI
+        # to the whole image
+        if(not left_in_image or not right_in_image or not top_in_image
+           or not bot_in_image):
+            self.set_ROI_text(0, 0, current_image.width, current_image.height)
+            self.delete_ROI()
+            return
+
+        # Snap the ROI to the edge of the image if it is outside the image
+        if y2_is_top:
+            draw_obj.y2 = top_y
+            draw_obj.y1 = bot_y
+        else:
+            draw_obj.y1 = top_y
+            draw_obj.y2 = bot_y
+        if x2_is_right:
+            draw_obj.x2 = right_x
+            draw_obj.x1 = left_x
+        else:
+            draw_obj.x1 = right_x
+            draw_obj.x2 = left_x
+
+        # Calculate the ROI information
+
+        self.set_ROI_text(left_x, bot_y, right_x, top_y)
+
+    def top_right_pixel_snap(self, ROI_side, image_edge):
+        """Snaps the top or right side of the ROI to the inclusive pixel
+
+        Parameters
+        ----------
+        ROI_side : float
+            Either the ROI's top-y or right-x value
+        image_edge : float
+            The top or right edge of the image
+
+        Returns
+        -------
+        ROI_side : float
+            The x or y value of the right or top ROI side respectively
+        side_in_image : bool
+            True if the side is in the image, False otherwise
+
+        """
+
+        # If the top/right ROI edge is outside the image, reset the top/right
+        # ROI side value to the edge
+        if ROI_side > image_edge:
+            ROI_side = image_edge + .5
+            side_in_image = True
+
+        # If the right side is to the left of the image or the top side is
+        # below the image, then the entire ROI is outside the image
+        elif ROI_side < 0.0:
+            side_in_image = False
+
+        # If the top/right is inside the image, snap it the edge of the
+        # inclusive pixel
+        else:
+            if ROI_side - int(ROI_side) == .5:
+                ROI_side = math.floor(ROI_side) + .5
+            else:
+                ROI_side = round(ROI_side) + .5
+            side_in_image = True
+        return (ROI_side, side_in_image)
+
+    def bot_left_pixel_snap(self, ROI_side, image_edge):
+        """Snaps the bottom or left side of the ROI to the inclusive pixel
+
+        Parameters
+        ----------
+
+        ROI_side : float
+            Either the ROI's bottom-y or left-x value
+        image_edge : float
+            The top or right edge of the image
+
+        Returns
+        -------
+        ROI_side : float
+            The x or y value of the left or bottom ROI side respectively
+        side_in_image : bool
+            True if the side is in the image, False otherwise
+
+        """
+
+        # If the bottom/left ROI edge is outside the image, reset the
+        # bottom/left ROI side value to the bottom/left edge (-0.5)
+        if ROI_side < 0.0:
+            ROI_side = -0.5
+            side_in_image = True
+
+        # If the left side is to the right of the image or the bottom side is
+        # above the image, then the entire ROI is outside the image
+        elif ROI_side > image_edge:
+            side_in_image = False
+
+        # If the bottom/left is inside the image, snap it the edge of the
+        # inclusive pixel
+        else:
+            if ROI_side - int(ROI_side) == .5:
+                ROI_side = math.ceil(ROI_side) - 0.5
+            else:
+                ROI_side = round(ROI_side) - 0.5
+            side_in_image = True
+        return (ROI_side, side_in_image)
+
+    def left_right_bottom_top(self, x1, x2, y1, y2):
+        """Determines the values for the left, right, bottom, and top vertices
+
+        Parameters
+        ----------
+        x1 : float
+            The x-value of where the right cursor was clicked
+        x2 : float
+            The x-value of where the right cursor was released
+        y1 : float
+            The y-value of where the right cursor was clicked
+        y2 : float
+            The y-value of where the right cursor was released
+
+        Returns
+        -------
+        left_x : float
+            The x-value of the left side of the ROI
+        right_x : float
+            The x-value of the right side of the ROI
+        bot_y : float
+            The y-value of the bottom side of the ROI
+        top_y : float
+            The y-value of the top side of the ROI
+        x2_is_right : bool
+            True if the x2 input is the right side of the ROI, False otherwise
+        y2_is_top : bool
+            True if the y2 input is the top side of the ROI, False otherwise
+
+        """
+
+        if x2 > x1:
+            right_x = x2
+            left_x = x1
+            x2_is_right = True
+        else:
+            right_x = x1
+            left_x = x2
+            x2_is_right = False
+        if y2 > y1:
+            top_y = y2
+            bot_y = y1
+            y2_is_top = True
+        else:
+            top_y = y1
+            bot_y = y2
+            y2_is_top = False
+        return (left_x, right_x, bot_y, top_y, x2_is_right, y2_is_top)
+
+    def delete_ROI(self):
+        """Deletes the Region of Interest"""
+        try:
+            self.pds_view.deleteObject(self.pds_view.objects[1])
+        except:
+            return
+
+    def set_ROI_text(self, left, bottom, right, top):
+        """Set the text of the ROI information boxes
+
+        Parameters
+        ----------"""
+        data = self.image_set.ROI_data(left, bottom, right, top)
+        ROI_pixels = self.image_set.ROI_pixels(left, bottom, right, top)
+        self.pixels.setText('#Pixels: %s' % (str(ROI_pixels)))
+        if self.image_set.current_image.ndim == 2:
+            ROI_std_dev = self.image_set.ROI_std_dev(data=data)
+            ROI_mean = self.image_set.ROI_mean(data=data)
+            ROI_median = self.image_set.ROI_median(data=data)
+            ROI_min = self.image_set.ROI_min(data=data)
+            ROI_max = self.image_set.ROI_max(data=data)
+            self.std_dev.setText('Std Dev: %s' % (str(ROI_std_dev)))
+            self.mean.setText('Mean: %s' % (str(ROI_mean)))
+            self.median.setText('Median: %s' % (str(ROI_median)))
+            self.min.setText('Min: %s' % (str(ROI_min)))
+            self.max.setText('Max: %s' % (str(ROI_max)))
+        elif self.image_set.current_image.ndim == 3:
+            image_set = self.image_set
+            ROI_stdev = [image_set.ROI_std_dev(data=data[n]) for n in range(3)]
+            ROI_mean = [image_set.ROI_mean(data=data[n]) for n in range(3)]
+            ROI_median = [image_set.ROI_median(data=data[n]) for n in range(3)]
+            ROI_max = [image_set.ROI_max(data=data[n]) for n in range(3)]
+            ROI_min = [image_set.ROI_min(data=data[n]) for n in range(3)]
+            for item in ROI_stdev, ROI_mean, ROI_median, ROI_min, ROI_max:
+                str(item)
+            self.std_dev.setText(
+                'Std Dev: R: %s G: %s B: %s' % (ROI_stdev[0], ROI_stdev[1],
+                                                ROI_stdev[2]))
+            self.mean.setText(
+                'Mean: R: %s G: %s B: %s' % (ROI_mean[0], ROI_mean[1],
+                                             ROI_mean[2]))
+            self.median.setText(
+                'Median: R: %s G: %s B: %s' % (ROI_median[0], ROI_median[1],
+                                               ROI_median[2]))
+            self.max.setText(
+                'Max: R: %s G: %s B: %s' % (ROI_max[0], ROI_max[1],
+                                            ROI_max[2]))
+            self.min.setText(
+                'Min: R: %s G: %s B: %s' % (ROI_min[0], ROI_min[1],
+                                            ROI_min[2]))
 
     def drop_file(self, pdsimage, paths):
         """This function is not yet supported"""
@@ -417,6 +775,11 @@ class PDSViewer(QtGui.QMainWindow):
 
 def pdsview(inlist=None):
     """Run pdsview from python shell or command line with arguments
+
+    Parameters
+    ----------
+    inlist : list
+        A list of file names/paths to display in the pdsview
 
     Examples
     --------
