@@ -132,3 +132,53 @@ def test_image_set_append_method_2():
     assert test_set.current_image.file_name == FILE_2_NAME
     assert FILE_3_NAME in str(test_set.images)
     assert test_set.next_prev_enabled
+
+
+def test_ROI_data():
+    test_set = pdsview.ImageSet([FILE_3])
+    test_data_1 = test_set.ROI_data(
+        0, 0, test_set.current_image.width, test_set.current_image.height)
+    assert test_data_1[0][0] == 23
+    assert test_data_1[512][16] == 25
+    assert test_data_1[1023][31] == 115
+    test_data_2 = test_set.ROI_data(9.5, 18.5, 11.5, 20.5)
+    assert test_data_2[0][0] == 22
+    assert test_data_2[0][1] == 23
+    assert test_data_2[1][0] == 24
+    assert test_data_2[1][1] == 24
+
+
+def test_ROI_pixels():
+    test_set = pdsview.ImageSet([FILE_3])
+    test_pixels = test_set.ROI_pixels(9.5, 18.5, 11.5, 20.5)
+    assert test_pixels == 4
+
+
+def test_ROI_std_dev():
+    test_set = pdsview.ImageSet([FILE_3])
+    test_std_dev = test_set.ROI_std_dev(9.5, 18.5, 11.5, 20.5)
+    assert test_std_dev == 0.829156
+
+
+def test_ROI_mean():
+    test_set = pdsview.ImageSet([FILE_3])
+    test_mean = test_set.ROI_mean(9.5, 18.5, 11.5, 20.5)
+    assert test_mean == 23.25
+
+
+def test_ROI_median():
+    test_set = pdsview.ImageSet([FILE_3])
+    test_median = test_set.ROI_median(9.5, 18.5, 11.5, 20.5)
+    assert test_median == 23.5
+
+
+def test_ROI_min():
+    test_set = pdsview.ImageSet([FILE_3])
+    test_min = test_set.ROI_min(9.5, 18.5, 11.5, 20.5)
+    assert test_min == 22
+
+
+def test_ROI_max():
+    test_set = pdsview.ImageSet([FILE_3])
+    test_max = test_set.ROI_max(9.5, 18.5, 11.5, 20.5)
+    assert test_max == 24

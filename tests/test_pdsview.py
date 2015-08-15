@@ -78,6 +78,7 @@ def test_label_load(qtbot):
 
 
 def test_display_values(qtbot):
+    """Test the display values text boxes"""
     test_images = pdsview.ImageSet([FILE_1, FILE_2])
     window = pdsview.PDSViewer(test_images)
     window.show()
@@ -94,9 +95,9 @@ def test_display_values(qtbot):
     assert window.y_value.text() == 'Y: 51'
     # Python 2 and 3 have different round methods
     try:
-        assert window.pixel_value.text() == 'Value: 23.0'
+        assert window.pixel_value.text() == 'Value: 24.0'
     except:
-        assert window.pixel_value.text() == 'Value: 23'
+        assert window.pixel_value.text() == 'Value: 24'
     assert window.pds_view.has_callback('motion')
     # Test Values go back to default after switching images
     qtbot.mouseClick(window.next_channel, QtCore.Qt.LeftButton)
@@ -119,3 +120,141 @@ def test_display_values(qtbot):
     # are having trouble communicating where/which widget is clicked so the
     # values do not update correctly
     # TODO test with a 3 band color image
+
+
+def test_apply_parameters(qtbot):
+    """Test that images maintain their parameters"""
+    test_images = pdsview.ImageSet([FILE_1, FILE_2])
+    window = pdsview.PDSViewer(test_images)
+    window.show()
+    qtbot.addWidget(window)
+    image1 = window.image_set.current_image
+    assert image1.sarr[0] == 0
+    assert image1.sarr[255] == 255
+    assert image1.zoom == 1.0
+    assert image1.rotation == 0.0
+    assert image1.transforms == (False, False, False)
+    assert image1.cuts == (0.0, 0.0)
+    # Change parameters
+    image1.sarr[0] = 42
+    image1.sarr[255] = 13
+    window.pds_view.get_rgbmap().set_sarr(image1.sarr)
+    window.pds_view.zoom_to(3)
+    window.pds_view.rotate(45)
+    window.pds_view.transform(False, True, False)
+    window.pds_view.cut_levels(24, 95)
+    qtbot.mouseClick(window.next_channel, QtCore.Qt.LeftButton)
+    # Test the second image parameters are None by defualt
+    image2 = window.image_set.current_image
+    assert image2.sarr is None
+    assert image2.zoom is None
+    assert image2.rotation is None
+    assert image2.transforms is None
+    assert image2.cuts is None
+    # Test the view was reset to defualt paramters for the image
+    assert window.pds_view.get_rgbmap().get_sarr()[0] == 0
+    assert window.pds_view.get_rgbmap().get_sarr()[255] == 255
+    assert window.pds_view.get_zoom() == 4.746031746031746
+    assert window.pds_view.get_rotation() == 0.0
+    assert window.pds_view.get_transforms() == (False, False, False)
+    assert window.pds_view.get_cut_levels() == (15, 17)
+    # Test changing back to the first image maintains image1's parameters
+    qtbot.mouseClick(window.previous_channel, QtCore.Qt.LeftButton)
+    image1 = window.image_set.current_image
+    assert image1.sarr[0] == 42
+    assert image1.sarr[255] == 13
+    assert image1.zoom == 3.0
+    assert image1.rotation == 45.0
+    assert image1.transforms == (False, True, False)
+    assert image1.cuts == (24, 95)
+    # Test that image2 stored its parameters
+    image2 = window.image_set.images[1]
+    assert image2.sarr[0] == 0
+    assert image2.sarr[255] == 255
+    assert image2.zoom == 4.746031746031746
+    assert image2.rotation == 0.0
+    assert image2.transforms == (False, False, False)
+    assert image2.cuts == (15, 17)
+
+
+def test_set_ROI_text(qtbot):
+    test_images = pdsview.ImageSet([FILE_1, FILE_2])
+    window = pdsview.PDSViewer(test_images)
+    window.show()
+    qtbot.addWidget(window)
+    # Test Whole image ROI
+    # window.set_ROI_text(0, 0, current_image.width, current_image.height)
+    assert window.pixels.text() == '#Pixels: 32768'
+    assert window.std_dev.text() == 'Std Dev: 15.769365'
+    assert window.mean.text() == 'Mean: 27.2659'
+    assert window.median.text() == 'Median: 24.0'
+    assert window.min.text() == 'Min: 22'
+    assert window.max.text() == 'Max: 115'
+    # Test 2x2 random ROI
+    # .5 values because these are the edge of the ROI pixels
+    window.set_ROI_text(9.5, 18.5, 11.5, 20.5)
+    assert window.pixels.text() == '#Pixels: 4.0'
+    assert window.std_dev.text() == 'Std Dev: 0.829156'
+    assert window.mean.text() == 'Mean: 23.25'
+    assert window.median.text() == 'Median: 23.5'
+    assert window.min.text() == 'Min: 22'
+    assert window.max.text() == 'Max: 24'
+
+
+def test_top_right_pixel_snap(qtbot):
+    test_images = pdsview.ImageSet([FILE_1, FILE_2])
+    window = pdsview.PDSViewer(test_images)
+    qtbot.addWidget(window)
+    test_snap_1 = window.top_right_pixel_snap(10, 5)
+    assert test_snap_1[0] == 5.5
+    assert test_snap_1[1]
+    test_snap_2 = window.top_right_pixel_snap(-5, 5)
+    assert not test_snap_2[1]
+    test_snap_3 = window.top_right_pixel_snap(5.4, 10)
+    assert test_snap_3[0] == 5.5
+    assert test_snap_3[1]
+    test_snap_4 = window.top_right_pixel_snap(5.5, 10)
+    assert test_snap_4[0] == 5.5
+    assert test_snap_4[1]
+    test_snap_5 = window.top_right_pixel_snap(5.6, 10)
+    assert test_snap_5[0] == 6.5
+    assert test_snap_5[1]
+
+
+def test_bot_left_pixel_snap(qtbot):
+    test_images = pdsview.ImageSet([FILE_1, FILE_2])
+    window = pdsview.PDSViewer(test_images)
+    qtbot.addWidget(window)
+    test_snap_1 = window.bot_left_pixel_snap(-5, 5)
+    assert test_snap_1[0] == -0.5
+    assert test_snap_1[1]
+    test_snap_2 = window.bot_left_pixel_snap(10, 5)
+    assert not test_snap_2[1]
+    test_snap_3 = window.bot_left_pixel_snap(5.4, 10)
+    assert test_snap_3[0] == 4.5
+    assert test_snap_3[1]
+    test_snap_4 = window.bot_left_pixel_snap(5.5, 10)
+    assert test_snap_4[0] == 5.5
+    assert test_snap_4[1]
+
+
+def test_left_right_bottom_top(qtbot):
+    test_images = pdsview.ImageSet([FILE_1, FILE_2])
+    window = pdsview.PDSViewer(test_images)
+    qtbot.addWidget(window)
+    test_coords_1 = window.left_right_bottom_top(1, 2, 1, 2)
+    assert test_coords_1[0:4] == (1, 2, 1, 2)
+    assert test_coords_1[4]
+    assert test_coords_1[5]
+    test_coords_2 = window.left_right_bottom_top(2, 1, 1, 2)
+    assert test_coords_2[0:4] == (1, 2, 1, 2)
+    assert not test_coords_2[4]
+    assert test_coords_2[5]
+    test_coords_3 = window.left_right_bottom_top(1, 2, 2, 1)
+    assert test_coords_3[0:4] == (1, 2, 1, 2)
+    assert test_coords_3[4]
+    assert not test_coords_3[5]
+    test_coords_4 = window.left_right_bottom_top(2, 1, 2, 1)
+    assert test_coords_4[0:4] == (1, 2, 1, 2)
+    assert not test_coords_4[4]
+    assert not test_coords_4[5]
