@@ -77,9 +77,6 @@ class ImageStamp(BaseImage):
             self.rotation = None
             self.transforms = None
             self.not_been_displayed = True
-            self.draw_obj = None
-            self.ROI_area = None
-            self.ROI_data = None
             self.pds_compatible = True
         except:
             self.pds_compatible = False
@@ -669,7 +666,6 @@ class PDSViewer(QtGui.QMainWindow):
 
         current_image = self.image_set.current_image
         draw_obj = pds_view.objects[1]
-        current_image.draw_obj = draw_obj
 
         # Retrieve the left, right, top, & bottom x and y values
         roi = self.left_right_bottom_top(
