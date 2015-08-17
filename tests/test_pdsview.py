@@ -178,6 +178,7 @@ def test_apply_parameters(qtbot):
 
 
 def test_set_ROI_text(qtbot):
+    """Test the ROI text to contain the correct values"""
     test_images = pdsview.ImageSet([FILE_1, FILE_2])
     window = pdsview.PDSViewer(test_images)
     window.show()
@@ -202,6 +203,7 @@ def test_set_ROI_text(qtbot):
 
 
 def test_top_right_pixel_snap(qtbot):
+    """Test the top and right values snap to the inclusive edge"""
     test_images = pdsview.ImageSet([FILE_1, FILE_2])
     window = pdsview.PDSViewer(test_images)
     qtbot.addWidget(window)
@@ -221,24 +223,26 @@ def test_top_right_pixel_snap(qtbot):
     assert test_snap_5[1]
 
 
-def test_bot_left_pixel_snap(qtbot):
+def test_bottom_left_pixel_snap(qtbot):
+    """Test the bottom and left values snap to the inclusive edge"""
     test_images = pdsview.ImageSet([FILE_1, FILE_2])
     window = pdsview.PDSViewer(test_images)
     qtbot.addWidget(window)
-    test_snap_1 = window.bot_left_pixel_snap(-5, 5)
+    test_snap_1 = window.bottom_left_pixel_snap(-5, 5)
     assert test_snap_1[0] == -0.5
     assert test_snap_1[1]
-    test_snap_2 = window.bot_left_pixel_snap(10, 5)
+    test_snap_2 = window.bottom_left_pixel_snap(10, 5)
     assert not test_snap_2[1]
-    test_snap_3 = window.bot_left_pixel_snap(5.4, 10)
+    test_snap_3 = window.bottom_left_pixel_snap(5.4, 10)
     assert test_snap_3[0] == 4.5
     assert test_snap_3[1]
-    test_snap_4 = window.bot_left_pixel_snap(5.5, 10)
+    test_snap_4 = window.bottom_left_pixel_snap(5.5, 10)
     assert test_snap_4[0] == 5.5
     assert test_snap_4[1]
 
 
 def test_left_right_bottom_top(qtbot):
+    """Test that the x1, x2, y1, y2 values are assigned to the correct edge"""
     test_images = pdsview.ImageSet([FILE_1, FILE_2])
     window = pdsview.PDSViewer(test_images)
     qtbot.addWidget(window)
