@@ -87,6 +87,7 @@ class ImageStamp(BaseImage):
     def __repr__(self):
         return self.file_name
 
+
 class ImageSet(object):
     """A set of ginga images to be displayed and methods to control the images.
 
@@ -159,40 +160,175 @@ class ImageSet(object):
         return new_image
 
     def ROI_data(self, left, bottom, right, top):
-        return self.current_image.cutout_data(
+        """Calculate the data in the Region of Interest
+
+        Parameters
+        ----------
+        left : float
+            The x coordinate value of the left side of the Region of Interest
+        bottom : float
+            The y coordinate value of the bottom side of the Region of Interest
+        right : float
+            The x coordinate value of the right side of the Region of Interest
+        bottom : float
+            The y coordinate value of the top side of the Region of Interest
+
+        Returns
+        -------
+        data : array
+            The data within the Region of Interest
+
+        """
+
+        data = self.current_image.cutout_data(
             math.ceil(left), math.ceil(bottom), math.ceil(right),
             math.ceil(top))
+        return data
 
     def ROI_pixels(self, left, bottom, right, top):
-        return (right - left) * (top - bottom)
+        """Calculate the number of pixels in the Region of Interest
+
+        Parameters
+        ----------
+        See ROI_data
+
+        Returns
+        -------
+        pixels : int
+            The number of pixels in the Region of Interest
+
+        """
+
+        pixels = (right - left) * (top - bottom)
+        return pixels
 
     def ROI_std_dev(self, left=None, bottom=None, right=None, top=None,
                     data=None):
+        """Calculate the standard deviation in the Region of Interest
+
+        Note
+        ----
+        If data is not provided, the left, bottom, right, and top parameters
+        must be provided. Otherwise it will result in a TypeError.
+
+        Parameters
+        ----------
+        left : Optional[float]
+            The x coordinate value of the left side of the Region of Interest
+        bottom : Optional[float]
+            The y coordinate value of the bottom side of the Region of Interest
+        right : Optional[float]
+            The x coordinate value of the right side of the Region of Interest
+        bottom : Optional[float]
+            The y coordinate value of the top side of the Region of Interest
+        data : Optional[array]
+            The data within the Region of Interest
+
+        Returns
+        -------
+        std_dev : float
+            The standard deviation of the pixels in the Region of Interest
+
+        """
+
         if data is None:
             data = self.ROI_data(left, bottom, right, top)
-        return round(numpy.std(data), 6)
+        std_dev = round(numpy.std(data), 6)
+        return std_dev
 
     def ROI_mean(self, left=None, bottom=None, right=None, top=None,
                  data=None):
+        """Calculate the mean of the Region of Interest
+
+        Parameters
+        ----------
+        See ROI_std_dev
+
+        Note
+        ----
+        See ROI_std_dev
+
+        Returns
+        -------
+        mean : float
+            The mean pixel value of the Region of Interest
+
+        """
+
         if data is None:
             data = self.ROI_data(left, bottom, right, top)
-        return round(numpy.mean(data), 4)
+        mean = round(numpy.mean(data), 4)
+        return mean
 
     def ROI_median(self, left=None, bottom=None, right=None, top=None,
                    data=None):
+        """Find the median of the Region of Interest
+
+        Parameters
+        ----------
+        See ROI_std_dev
+
+        Note
+        ----
+        See ROI_std_dev
+
+        Returns
+        -------
+        median : float
+            The median pixel value of the Region of Interest
+
+        """
+
         if data is None:
             data = self.ROI_data(left, bottom, right, top)
-        return numpy.median(data)
+        median = numpy.median(data)
+        return median
 
     def ROI_min(self, left=None, bottom=None, right=None, top=None, data=None):
+        """Find the minimum pixel value of the Region of Interest
+
+        Parameters
+        ----------
+        See ROI_std_dev
+
+        Note
+        ----
+        See ROI_std_dev
+
+        Returns
+        -------
+        minimum : float
+            The minimum pixel value of the Region of Interest
+
+        """
+
         if data is None:
             data = self.ROI_data(left, bottom, right, top)
-        return numpy.nanmin(data)
+        minimum = numpy.nanmin(data)
+        return minimum
 
     def ROI_max(self, left=None, bottom=None, right=None, top=None, data=None):
+        """Find the maximum pixel value of the Region of Interest
+
+        Parameters
+        ----------
+        See ROI_std_dev
+
+        Note
+        ----
+        See ROI_std_dev
+
+        Returns
+        -------
+        maximum : float
+            The maximum pixel value of the Region of Interest
+
+        """
+
         if data is None:
             data = self.ROI_data(left, bottom, right, top)
-        return numpy.nanmax(data)
+        maximum = numpy.nanmax(data)
+        return maximum
 
 
 class PDSViewer(QtGui.QMainWindow):
@@ -413,6 +549,7 @@ class PDSViewer(QtGui.QMainWindow):
             self.pds_view.set_image(current_image, redraw=False)
             self.restore()
             self.pds_view.delayed_redraw()
+            current_image.not_been_displayed = False
         else:
             # Set the current image with the images last parameters
             self.pds_view.set_image(current_image, redraw=False)
@@ -477,7 +614,7 @@ class PDSViewer(QtGui.QMainWindow):
         self.pds_view.enable_autocuts('override')
         self.pds_view.rotate(0.0)
         # The default transform/rotation of the image will be image specific so
-        # transform will change in the future
+        # transform bools will change in the future
         self.pds_view.transform(False, False, False)
         self.pds_view.zoom_fit()
 
@@ -511,8 +648,8 @@ class PDSViewer(QtGui.QMainWindow):
 
         When drawing stops (release of the right mouse button), the ROI border
         snaps to inclusive pixel (see top_right_pixel_snap and
-        bot_left_pixel_snap). The ROI's information is set as an attributes of
-        the current image (see calculate_ROI_info).
+        bottom_left_pixel_snap). The ROI's information is set as an attributes
+        of the current image (see calculate_ROI_info).
 
         Note
         ----
@@ -549,9 +686,9 @@ class PDSViewer(QtGui.QMainWindow):
         max_height = current_image.height
         max_width = current_image.width
         top_y, top_in_image = self.top_right_pixel_snap(top_y, max_height)
-        bot_y, bot_in_image = self.bot_left_pixel_snap(bot_y, max_height)
+        bot_y, bot_in_image = self.bottom_left_pixel_snap(bot_y, max_height)
         right_x, right_in_image = self.top_right_pixel_snap(right_x, max_width)
-        left_x, left_in_image = self.bot_left_pixel_snap(left_x, max_width)
+        left_x, left_in_image = self.bottom_left_pixel_snap(left_x, max_width)
 
         # If the entire ROI is outside the ROI, delete the ROI and set the ROI
         # to the whole image
@@ -609,17 +746,17 @@ class PDSViewer(QtGui.QMainWindow):
         elif ROI_side < 0.0:
             side_in_image = False
 
-        # If the top/right is inside the image, snap it the edge of the
-        # inclusive pixel
+        # If the top/right ROI values is inside the image, snap it the edge
+        # of the inclusive pixel. If the value is already on the edge, pass
         else:
             if ROI_side - int(ROI_side) == .5:
-                ROI_side = math.floor(ROI_side) + .5
+                pass
             else:
                 ROI_side = round(ROI_side) + .5
             side_in_image = True
         return (ROI_side, side_in_image)
 
-    def bot_left_pixel_snap(self, ROI_side, image_edge):
+    def bottom_left_pixel_snap(self, ROI_side, image_edge):
         """Snaps the bottom or left side of the ROI to the inclusive pixel
 
         Parameters
@@ -650,11 +787,11 @@ class PDSViewer(QtGui.QMainWindow):
         elif ROI_side > image_edge:
             side_in_image = False
 
-        # If the bottom/left is inside the image, snap it the edge of the
-        # inclusive pixel
+        # If the bottom/left ROI values is inside the image, snap it the edge
+        # of the inclusive pixel. If the value is already on the edge, pass
         else:
             if ROI_side - int(ROI_side) == .5:
-                ROI_side = math.ceil(ROI_side) - 0.5
+                pass
             else:
                 ROI_side = round(ROI_side) - 0.5
             side_in_image = True
@@ -719,46 +856,92 @@ class PDSViewer(QtGui.QMainWindow):
     def set_ROI_text(self, left, bottom, right, top):
         """Set the text of the ROI information boxes
 
+        When the image has three bands (colored), the ROI value boxes will
+        display the values for each band.
+
         Parameters
-        ----------"""
+        ----------
+        left : float
+            The x coordinate value of the left side of the ROI
+        bottom : float
+            The y coordinate value of the bottom side of the ROI
+        right : float
+            The x coordinate value of the right side of the ROI
+        bottom : float
+            The y coordinate value of the top side of the ROI
+
+        """
+
         data = self.image_set.ROI_data(left, bottom, right, top)
+        # Calculate the number of pixels in the ROI
         ROI_pixels = self.image_set.ROI_pixels(left, bottom, right, top)
         self.pixels.setText('#Pixels: %s' % (str(ROI_pixels)))
-        if self.image_set.current_image.ndim == 2:
-            ROI_std_dev = self.image_set.ROI_std_dev(data=data)
-            ROI_mean = self.image_set.ROI_mean(data=data)
-            ROI_median = self.image_set.ROI_median(data=data)
-            ROI_min = self.image_set.ROI_min(data=data)
-            ROI_max = self.image_set.ROI_max(data=data)
-            self.std_dev.setText('Std Dev: %s' % (str(ROI_std_dev)))
-            self.mean.setText('Mean: %s' % (str(ROI_mean)))
-            self.median.setText('Median: %s' % (str(ROI_median)))
-            self.min.setText('Min: %s' % (str(ROI_min)))
-            self.max.setText('Max: %s' % (str(ROI_max)))
-        elif self.image_set.current_image.ndim == 3:
-            image_set = self.image_set
-            ROI_stdev = [image_set.ROI_std_dev(data=data[n]) for n in range(3)]
-            ROI_mean = [image_set.ROI_mean(data=data[n]) for n in range(3)]
-            ROI_median = [image_set.ROI_median(data=data[n]) for n in range(3)]
-            ROI_max = [image_set.ROI_max(data=data[n]) for n in range(3)]
-            ROI_min = [image_set.ROI_min(data=data[n]) for n in range(3)]
-            for item in ROI_stdev, ROI_mean, ROI_median, ROI_min, ROI_max:
-                str(item)
-            self.std_dev.setText(
-                'Std Dev: R: %s G: %s B: %s' % (ROI_stdev[0], ROI_stdev[1],
-                                                ROI_stdev[2]))
-            self.mean.setText(
-                'Mean: R: %s G: %s B: %s' % (ROI_mean[0], ROI_mean[1],
-                                             ROI_mean[2]))
-            self.median.setText(
-                'Median: R: %s G: %s B: %s' % (ROI_median[0], ROI_median[1],
-                                               ROI_median[2]))
-            self.max.setText(
-                'Max: R: %s G: %s B: %s' % (ROI_max[0], ROI_max[1],
-                                            ROI_max[2]))
-            self.min.setText(
-                'Min: R: %s G: %s B: %s' % (ROI_min[0], ROI_min[1],
-                                            ROI_min[2]))
+        if data.ndim == 2:
+            # 2 band image is a gray scale image
+            self.set_ROI_gray_text(data)
+        elif data.ndim == 3:
+            # Three band image is a RGB colored image
+            try:
+                self.set_ROI_RGB_text(data)
+            except:
+                # If the ROI does not contain values for each band, treat the
+                # ROI like a gray scale image
+                self.set_ROI_gray_text(data)
+
+    def set_ROI_gray_text(self, data):
+        """Set the values for the ROI in the text boxes for a gray image
+
+        Parameters
+        ----------
+        data : array
+            The data from the Region of Interest
+
+        """
+
+        ROI_std_dev = self.image_set.ROI_std_dev(data=data)
+        ROI_mean = self.image_set.ROI_mean(data=data)
+        ROI_median = self.image_set.ROI_median(data=data)
+        ROI_min = self.image_set.ROI_min(data=data)
+        ROI_max = self.image_set.ROI_max(data=data)
+        self.std_dev.setText('Std Dev: %s' % (str(ROI_std_dev)))
+        self.mean.setText('Mean: %s' % (str(ROI_mean)))
+        self.median.setText('Median: %s' % (str(ROI_median)))
+        self.min.setText('Min: %s' % (str(ROI_min)))
+        self.max.setText('Max: %s' % (str(ROI_max)))
+
+    def set_ROI_RGB_text(self, data):
+        """Set the values for the ROI in the text boxes for a RGB image
+
+        Parameters
+        ----------
+        data : array
+            The data from the Region of Interest
+
+        """
+
+        image_set = self.image_set
+        ROI_stdev = [image_set.ROI_std_dev(data=data[n]) for n in range(3)]
+        ROI_mean = [image_set.ROI_mean(data=data[n]) for n in range(3)]
+        ROI_median = [image_set.ROI_median(data=data[n]) for n in range(3)]
+        ROI_max = [image_set.ROI_max(data=data[n]) for n in range(3)]
+        ROI_min = [image_set.ROI_min(data=data[n]) for n in range(3)]
+        for item in ROI_stdev, ROI_mean, ROI_median, ROI_min, ROI_max:
+            str(item)
+        self.std_dev.setText(
+            'Std Dev: R: %s G: %s B: %s' % (ROI_stdev[0], ROI_stdev[1],
+                                            ROI_stdev[2]))
+        self.mean.setText(
+            'Mean: R: %s G: %s B: %s' % (ROI_mean[0], ROI_mean[1],
+                                         ROI_mean[2]))
+        self.median.setText(
+            'Median: R: %s G: %s B: %s' % (ROI_median[0], ROI_median[1],
+                                           ROI_median[2]))
+        self.max.setText(
+            'Max: R: %s G: %s B: %s' % (ROI_max[0], ROI_max[1],
+                                        ROI_max[2]))
+        self.min.setText(
+            'Min: R: %s G: %s B: %s' % (ROI_min[0], ROI_min[1],
+                                        ROI_min[2]))
 
     def drop_file(self, pdsimage, paths):
         """This function is not yet supported"""
