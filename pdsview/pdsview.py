@@ -53,8 +53,8 @@ class ImageStamp(BaseImage):
     transforms : tuple (bool, bool, bool)
         Whether the image is flipped across the x-axis, y-axis, or x/y is
         switched
-    pds_compatible : bool
-        Indicates whether planetaryimage can open the file
+    not_been_displayed : bool
+        Whether the image has been displayed already
     """
     def __init__(self, filepath, name, pds_image, data_np, metadata=None,
                  logger=None):
@@ -387,6 +387,12 @@ class ImageSet(object):
         The currently displayed image
     current_image_index : int
         Index value of the current image
+    file_dict : dictionary
+        dictionary of images list, makes accessing images by name easier
+    channel : int
+        Which channel in the image the view should be in
+    next_prev_enabled : bool
+        Whether the next and previous buttons should be enabled
     """
     def __init__(self, filepaths):
         # Remove any duplicate filepaths and sort the list alpha-numerically.
@@ -456,6 +462,7 @@ class ImageSet(object):
         self.channel = 0
 
     def next_channel(self):
+        """Change to the next channel, restart if at the end of the channels"""
         number_channels = len(self.current_image)
         if number_channels == 1:
             return
@@ -464,6 +471,7 @@ class ImageSet(object):
             self.channel = 0
 
     def previous_channel(self):
+        """Change to the previous channel, go to the end if at the beginning"""
         number_channels = len(self.current_image)
         if number_channels == 1:
             return
