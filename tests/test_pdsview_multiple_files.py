@@ -28,25 +28,25 @@ def test_image_next_switch(qtbot):
     qtbot.addWidget(window)
 #   This simulates sys.argv
     assert window.open_label.isEnabled()
-    assert window.next_channel.isEnabled()
-
-#   '2m1...' file
-    assert test_images.current_image.file_name == FILE_1_NAME
-    assert test_images.current_image_index == 0
-
-#   '2p1...' file
-    qtbot.mouseClick(window.next_channel, QtCore.Qt.LeftButton)
-    assert test_images.current_image.file_name == FILE_2_NAME
-    assert test_images.current_image_index == 1
+    assert window.next_image.isEnabled()
 
 #   '1p1...' file
-    qtbot.mouseClick(window.next_channel, QtCore.Qt.LeftButton)
-    assert test_images.current_image.file_name == FILE_3_NAME
+    assert test_images.current_image[0].file_name == FILE_3_NAME
+    assert test_images.current_image_index == 0
+
+#   '2m1...' file
+    qtbot.mouseClick(window.next_image, QtCore.Qt.LeftButton)
+    assert test_images.current_image[0].file_name == FILE_1_NAME
+    assert test_images.current_image_index == 1
+
+#   '2p1...' file
+    qtbot.mouseClick(window.next_image, QtCore.Qt.LeftButton)
+    assert test_images.current_image[0].file_name == FILE_2_NAME
     assert test_images.current_image_index == 2
 
-#   back to the '2m1...' file
-    qtbot.mouseClick(window.next_channel, QtCore.Qt.LeftButton)
-    assert test_images.current_image.file_name == FILE_1_NAME
+#   back to the '1p1...' file
+    qtbot.mouseClick(window.next_image, QtCore.Qt.LeftButton)
+    assert test_images.current_image[0].file_name == FILE_3_NAME
     assert test_images.current_image_index == 0
 
 
@@ -62,25 +62,25 @@ def test_image_previous_switch(qtbot):
 #   This simulates sys.argv
 
     assert window.open_label.isEnabled()
-    assert window.previous_channel.isEnabled()
-
-#   '2m1...' file
-    assert test_images.current_image.file_name == FILE_1_NAME
-    assert test_images.current_image_index == 0
+    assert window.previous_image.isEnabled()
 
 #   '1p1...' file
-    qtbot.mouseClick(window.previous_channel, QtCore.Qt.LeftButton)
-    assert test_images.current_image.file_name == FILE_3_NAME
-    assert test_images.current_image_index == 2
+    assert test_images.current_image[0].file_name == FILE_3_NAME
+    assert test_images.current_image_index == 0
 
 #   '2p1...' file
-    qtbot.mouseClick(window.previous_channel, QtCore.Qt.LeftButton)
-    assert test_images.current_image.file_name == FILE_2_NAME
+    qtbot.mouseClick(window.previous_image, QtCore.Qt.LeftButton)
+    assert test_images.current_image[0].file_name == FILE_2_NAME
+    assert test_images.current_image_index == 2
+
+#   '2m1...' file
+    qtbot.mouseClick(window.previous_image, QtCore.Qt.LeftButton)
+    assert test_images.current_image[0].file_name == FILE_1_NAME
     assert test_images.current_image_index == 1
 
-#   back to the '2m1...' file
-    qtbot.mouseClick(window.previous_channel, QtCore.Qt.LeftButton)
-    assert test_images.current_image.file_name == FILE_1_NAME
+#   back to the '1p1...' file
+    qtbot.mouseClick(window.previous_image, QtCore.Qt.LeftButton)
+    assert test_images.current_image[0].file_name == FILE_3_NAME
     assert test_images.current_image_index == 0
 
 
@@ -94,21 +94,21 @@ def test_label_next_switch(qtbot):
     qtbot.addWidget(window)
 #   This simulates sys.argv
 
-#   '2m1...' file
+#   '1p1...' file
     qtbot.mouseClick(window.open_label, QtCore.Qt.LeftButton)
-    assert window._label_window.label_contents.toPlainText()[182:186] == "1029"
+    window._label_window.label_contents.toPlainText()[228:231] == "338"
+
+#   '2m1...' file
+    qtbot.mouseClick(window.next_image, QtCore.Qt.LeftButton)
+    assert window._label_window.label_contents.toPlainText()[220:221] == "5"
 
 #   '2p1...' file
-    qtbot.mouseClick(window.next_channel, QtCore.Qt.LeftButton)
-    assert window._label_window.label_contents.toPlainText()[193:196] == "332"
+    qtbot.mouseClick(window.next_image, QtCore.Qt.LeftButton)
+    assert window._label_window.label_contents.toPlainText()[233:236] == "170"
 
-#   jumps to the '1p1...' file
-    qtbot.mouseClick(window.next_channel, QtCore.Qt.LeftButton)
-    assert window._label_window.label_contents.toPlainText()[188:192] == "1561"
-
-#   jump to the original '2m1...' file
-    qtbot.mouseClick(window.next_channel, QtCore.Qt.LeftButton)
-    assert window._label_window.label_contents.toPlainText()[182:186] == "1029"
+#   jump to the original '1p1...' file
+    qtbot.mouseClick(window.next_image, QtCore.Qt.LeftButton)
+    window._label_window.label_contents.toPlainText()[228:231] == "338"
 
 
 def test_label_previous_switch(qtbot):
@@ -121,18 +121,18 @@ def test_label_previous_switch(qtbot):
     qtbot.addWidget(window)
 #   This simulates sys.argv
 
-#   '2m1...' file
+#   '1p1...' file
     qtbot.mouseClick(window.open_label, QtCore.Qt.LeftButton)
-    assert window._label_window.label_contents.toPlainText()[182:186] == "1029"
-
-#   jumps to the '1p1...' file
-    qtbot.mouseClick(window.previous_channel, QtCore.Qt.LeftButton)
-    assert window._label_window.label_contents.toPlainText()[188:192] == "1561"
+    window._label_window.label_contents.toPlainText()[228:231] == "338"
 
 #   '2p1...' file
-    qtbot.mouseClick(window.previous_channel, QtCore.Qt.LeftButton)
-    assert window._label_window.label_contents.toPlainText()[193:196] == "332"
+    qtbot.mouseClick(window.previous_image, QtCore.Qt.LeftButton)
+    assert window._label_window.label_contents.toPlainText()[233:236] == "170"
 
-#   the original '1p1...' file
-    qtbot.mouseClick(window.previous_channel, QtCore.Qt.LeftButton)
-    assert window._label_window.label_contents.toPlainText()[182:186] == "1029"
+#   '2m1...' file
+    qtbot.mouseClick(window.previous_image, QtCore.Qt.LeftButton)
+    assert window._label_window.label_contents.toPlainText()[220:221] == "5"
+
+#   jump to the original '1p1...' file
+    qtbot.mouseClick(window.previous_image, QtCore.Qt.LeftButton)
+    window._label_window.label_contents.toPlainText()[228:231] == "338"
