@@ -272,12 +272,15 @@ def test_switch_rgb(qtbot):
     test_images = pdsview.ImageSet([FILE_1, FILE_3])
     window = pdsview.PDSViewer(test_images)
     qtbot.addWidget(window)
+    # Check that intially the current image is a single band
     assert window.image_set.current_image[0].ndim == 2
     window.next_channel.setEnabled(False)
     window.rgb_check_box.setCheckState(QtCore.Qt.Checked)
+    # Test the current image is now a 3 band image
     assert window.image_set.current_image[0].ndim == 3
     assert not window.next_channel.isEnabled()
     window.rgb_check_box.setCheckState(QtCore.Qt.Unchecked)
+    # Test the current image is now a single band image again
     assert window.image_set.current_image[0].ndim == 2
 
 
@@ -302,6 +305,7 @@ def test_restore(qtbot):
     qtbot.addWidget(window)
     window.save_parameters()
     image1 = window.pds_view.get_image()
+    # Initial checks
     assert image1.sarr[0] == 0
     assert image1.sarr[255] == 255
     assert image1.zoom == 1.0
@@ -313,6 +317,7 @@ def test_restore(qtbot):
     window.pds_view.rotate(45)
     window.pds_view.transform(False, True, False)
     window.pds_view.cut_levels(24, 95)
+    # Restore back to defaults
     qtbot.mouseClick(window.restore_defaults, QtCore.Qt.LeftButton)
     assert image1.sarr[0] == 0
     assert image1.sarr[255] == 255
