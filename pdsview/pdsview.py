@@ -11,6 +11,7 @@ from glob import glob
 from ginga.qtw.QtHelp import QtGui, QtCore
 from ginga.qtw.ImageViewCanvasQt import ImageViewCanvas
 from ginga.BaseImage import BaseImage
+from ginga.LayerImage import LayerImage
 from planetaryimage import PDS3Image
 import argparse
 import math
@@ -35,7 +36,7 @@ class ImageStamp(BaseImage):
 
     Attributes
     ----------
-    file_name : string
+    image_name : string
         The filename of the filepath
     pds_image : planetaryimage object
         A planetaryimage object
@@ -55,34 +56,318 @@ class ImageStamp(BaseImage):
     pds_compatible : bool
         Indicates whether planetaryimage can open the file
     """
-    def __init__(self, filepath, data_np=None, metadata=None, logger=None):
+    def __init__(self, filepath, name, pds_image, data_np, metadata=None,
+                 logger=None):
         BaseImage.__init__(self, data_np=data_np, metadata=metadata,
                            logger=logger)
-
+        self.set_data(data_np)
+        with open(filepath, 'rb') as f:
+            label_array = []
+            for lineno, line in enumerate(f):
+                line = line.decode().rstrip()
+                label_array.append(line)
+                if line.strip() == 'END':
+                    break
+        self.data = data_np
+        self.image_name = name
         self.file_name = os.path.basename(filepath)
-        try:
-            self.pds_image = PDS3Image.open(filepath)
-            self.set_data(self.pds_image.data)
-            with open(filepath, 'rb') as f:
-                label_array = []
-                for lineno, line in enumerate(f):
-                    line = line.decode().rstrip()
-                    label_array.append(line)
-                    if line.strip() == 'END':
-                        break
-            self.label = label_array
-            self.cuts = None
-            self.sarr = None
-            self.zoom = None
-            self.rotation = None
-            self.transforms = None
-            self.not_been_displayed = True
-            self.pds_compatible = True
-        except:
-            self.pds_compatible = False
+        self.pds_image = pds_image
+        self.label = label_array
+        self.cuts = None
+        self.sarr = None
+        self.zoom = None
+        self.rotation = None
+        self.transforms = None
+        self.not_been_displayed = True
 
     def __repr__(self):
         return self.file_name
+
+
+class CompositeLayer(BaseImage):
+    """BaseImage object to act as a composite layer"""
+    def __init__(self, data_np, metadata=None, logger=None):
+        BaseImage.__init__(self, data_np=data_np, metadata=metadata,
+                           logger=logger)
+        self.set_data(data_np)
+
+
+class CompositeImage(BaseImage, LayerImage):
+    """A rgb colored image"""
+    def __init__(self, composite_layers, names=None, data_np=None,
+                 metadata=None, logger=None):
+        BaseImage.__init__(self, data_np=data_np, metadata=metadata,
+                           logger=logger)
+        LayerImage.__init__(self)
+
+        idx = 0
+        if not names:
+            names = [image.image_name for image in composite_layers]
+        for composite_layer, name in zip(composite_layers, names):
+            self.insert_layer(
+                image=composite_layer, idx=idx, name=name)
+            idx += 1
+        self.rgb_compose()
+
+
+class ChannelsDialog(QtGui.QDialog):
+    """A Dialog box to adjust the channels and alpha values"""
+    def __init__(self, current_image, main_window):
+        super(ChannelsDialog, self).__init__()
+
+        self.main_window = main_window
+        self.current_image = current_image
+        images = main_window.image_set.images
+        image_names = [image.image_name for sub in images for image in sub]
+        self.image_names = image_names
+        rgb_names = [band.image_name for band in main_window.rgb]
+
+        # Create display of image names and highlight the current image/channel
+        self.image_list = QtGui.QTreeWidget()
+        self.image_list.setColumnCount(1)
+        self.image_list.setHeaderLabel('Channels')
+        self.items = []
+        for image_name in image_names:
+            self.items.append(QtGui.QTreeWidgetItem(None, image_name))
+        for index in range(len(self.items)):
+            self.items[index].setText(0, image_names[index])
+        self.image_list.insertTopLevelItems(1, self.items)
+        # Do not allow selection of images from list
+        self.image_list.setSelectionMode(QtGui.QAbstractItemView.NoSelection)
+        # highlight the current image
+        self.current_index = image_names.index(current_image.image_name)
+        current_item = self.items[self.current_index]
+        self.image_list.setItemSelected(current_item, True)
+        self.image_list.setIndentation(0)
+        self.image_list.setFixedWidth(400)
+
+        # Create rgb check-box to toggle display of color or single band image
+        # This rgb check box connects with the rgb check box in the main window
+        self.rgb_check_box = QtGui.QCheckBox("RGB")
+        self.rgb_check_box.stateChanged.connect(self.check_rgb)
+
+        # Create Red Menu
+        # Create the red menu drop down box
+        self.red_menu = QtGui.QComboBox()
+        red_label = QtGui.QLabel("Red")
+        red_box = QtGui.QHBoxLayout()
+        R_index = image_names.index(rgb_names[0])
+        self.add_text_to_menu(self.red_menu, image_names, R_index)
+        self.create_color_layout(red_label, self.red_menu, red_box)
+        # Create red alpha slider
+        self.red_alpha_slider = QtGui.QSlider(QtCore.Qt.Horizontal)
+        red_alpha_value = QtGui.QLabel()
+        red_alpha_value_container = QtGui.QHBoxLayout()
+        red_alpha_label = QtGui.QLabel('Red %')
+        red_alpha_slider_container = QtGui.QHBoxLayout()
+        red_alpha_container = QtGui.QVBoxLayout()
+        self.create_slider_layout(
+            self.red_alpha_slider, red_alpha_value, red_alpha_label,
+            red_alpha_slider_container, red_alpha_value_container,
+            red_alpha_container)
+
+        # Create Green Menu
+        # Create the green menu drop down box
+        self.green_menu = QtGui.QComboBox()
+        green_label = QtGui.QLabel("Green")
+        green_box = QtGui.QHBoxLayout()
+        G_index = image_names.index(rgb_names[1])
+        self.add_text_to_menu(self.green_menu, image_names, G_index)
+        self.create_color_layout(green_label, self.green_menu, green_box)
+        # Create green alpha slider
+        self.green_alpha_slider = QtGui.QSlider(QtCore.Qt.Horizontal)
+        green_alpha_value = QtGui.QLabel()
+        green_alpha_value_container = QtGui.QHBoxLayout()
+        green_alpha_label = QtGui.QLabel('Green %')
+        green_alpha_slider_container = QtGui.QHBoxLayout()
+        green_alpha_container = QtGui.QVBoxLayout()
+        self.create_slider_layout(
+            self.green_alpha_slider, green_alpha_value, green_alpha_label,
+            green_alpha_slider_container, green_alpha_value_container,
+            green_alpha_container)
+
+        # Create Blue Menu
+        # Create the blue menu drop down box
+        self.blue_menu = QtGui.QComboBox()
+        blue_label = QtGui.QLabel("Blue")
+        blue_box = QtGui.QHBoxLayout()
+        B_index = image_names.index(rgb_names[2])
+        self.add_text_to_menu(self.blue_menu, image_names, B_index)
+        self.create_color_layout(blue_label, self.blue_menu, blue_box)
+        # Create blue alpha slider
+        self.blue_alpha_slider = QtGui.QSlider(QtCore.Qt.Horizontal)
+        blue_alpha_value = QtGui.QLabel()
+        blue_alpha_value_container = QtGui.QHBoxLayout()
+        blue_alpha_label = QtGui.QLabel('Blue %')
+        blue_alpha_slider_container = QtGui.QHBoxLayout()
+        blue_alpha_container = QtGui.QVBoxLayout()
+        self.create_slider_layout(
+            self.blue_alpha_slider, blue_alpha_value, blue_alpha_label,
+            blue_alpha_slider_container, blue_alpha_value_container,
+            blue_alpha_container)
+
+        # Create a close button
+        self.close_button = QtGui.QPushButton('Close')
+        self.close_button.clicked.connect(self.close_dialog)
+
+        containers = [self.image_list, self.rgb_check_box, red_box,
+                      red_alpha_container, green_box,
+                      green_alpha_container, blue_box, blue_alpha_container,
+                      self.close_button]
+
+        # Set items created above in a grid layout
+        self.layout = QtGui.QGridLayout()
+        row = 0
+        for container in containers:
+            try:
+                self.layout.addLayout(container, row, 0)
+                self.layout.setAlignment(container, QtCore.Qt.AlignLeft)
+            except:
+                self.layout.addWidget(container, row, 0)
+                self.layout.setAlignment(container, QtCore.Qt.AlignHCenter)
+            row += 1
+
+        self.setLayout(self.layout)
+        self.update_menus_index()
+        # Match the rgb check box state from the main window
+        state = main_window.rgb_check_box.checkState()
+        self.rgb_check_box.setCheckState(state)
+
+    def check_rgb(self, state):
+        """Displays the rgb image when checked, single band otherwise"""
+        if state == QtCore.Qt.Checked:
+            self.main_window.rgb_check_box.setCheckState(QtCore.Qt.Checked)
+            self.create_composite_image()
+        elif state == QtCore.Qt.Unchecked:
+            self.main_window.rgb_check_box.setCheckState(QtCore.Qt.Unchecked)
+
+    def create_slider_layout(self, slider, value, label, slider_container,
+                             value_container, container):
+        """Creates the alpha slider layout"""
+        slider.setRange(0, 100)
+        slider.setValue(100)
+        value_container.addWidget(value)
+        slider.valueChanged.connect(
+            lambda: self.update_alpha_value(slider, value, label))
+        slider.sliderReleased.connect(self.create_composite_image)
+        slider.setFixedWidth(100)
+        value.setNum(slider.value())
+        label.setFixedWidth(label.sizeHint().width())
+        value.setIndent((slider.width()/100) * slider.value() + label.width())
+        slider_container.addWidget(label)
+        slider_container.addWidget(slider)
+        container.addLayout(value_container)
+        container.addLayout(slider_container)
+        slider_container.setAlignment(label, QtCore.Qt.AlignLeft)
+        slider_container.setAlignment(slider, QtCore.Qt.AlignLeft)
+        value_container.setAlignment(value, QtCore.Qt.AlignHCenter)
+        container.setAlignment(slider_container, QtCore.Qt.AlignLeft)
+        container.setAlignment(value_container, QtCore.Qt.AlignLeft)
+
+    def update_alpha_value(self, slider, slider_value, label):
+        """Displays the slider value over the alpha slider cursor"""
+        slider_value.setNum(slider.value())
+        slider_value.setIndent((
+            slider.width()/100) * slider.value() + label.width())
+
+    def get_alphas(self):
+        """Returns the alpha values from each alpha slider"""
+        red_alpha = self.red_alpha_slider.value()/100.
+        green_alpha = self.green_alpha_slider.value()/100.
+        blue_alpha = self.blue_alpha_slider.value()/100.
+        alphas = [red_alpha, green_alpha, blue_alpha]
+        return alphas
+
+    def add_text_to_menu(self, menu, names, index):
+        """Adds the images to the menu & sets the current item in the menu"""
+        for name in names:
+            menu.addItem(name)
+        menu.setCurrentIndex(index)
+        menu.activated[int].connect(self.create_composite_image)
+
+    def update_menus_index(self):
+        """Updates indices so menu can return to default item"""
+        red = self.red_menu.currentIndex()
+        green = self.green_menu.currentIndex()
+        blue = self.blue_menu.currentIndex()
+        self.indices = [red, green, blue]
+
+    def update_menus_current_item(self):
+        """Change each menus current item to match the main windows rgb list"""
+        rgb_names = [band.image_name for band in self.main_window.rgb]
+        indices = [self.image_names.index(rgb_name) for rgb_name in rgb_names]
+        menus = [self.red_menu, self.green_menu, self.blue_menu]
+        for index, menu in zip(indices, menus):
+            menu.setCurrentIndex(index)
+
+    def menus_current_text(self):
+        """Returns the text of each menu"""
+        red = self.red_menu.currentText()
+        green = self.green_menu.currentText()
+        blue = self.blue_menu.currentText()
+        bands = [red, green, blue]
+        return bands
+
+    def create_composite_image(self, index=None):
+        """Creates the rgb composite image and displays it"""
+        if self.rgb_check_box.checkState() == QtCore.Qt.Unchecked:
+            return
+        bands = self.menus_current_text()
+        alphas = self.get_alphas()
+        file_dict = self.main_window.image_set.file_dict
+        names = []
+        composite_layers = []
+        try:
+            for band, alpha in zip(bands, alphas):
+                layer = file_dict[band]
+                layer_data = layer.data * alpha
+                composite_layer = CompositeLayer(layer_data)
+                names.append(layer.image_name)
+                composite_layers.append(composite_layer)
+            composite_image = CompositeImage(composite_layers, names)
+            rgb_data = composite_image.get_data()
+            self.current_image.set_data(rgb_data)
+            self.update_menus_index()
+            self.main_window.next_channel.setEnabled(False)
+            self.main_window.previous_channel.setEnabled(False)
+        except ValueError:
+            menus = [self.red_menu, self.green_menu, self.blue_menu]
+            for menu, index in zip(menus, self.indices):
+                menu.setCurrentIndex(index)
+            print("Images must be the same size")
+            self.rgb_check_box.setCheckState(QtCore.Qt.Unchecked)
+
+    def create_color_layout(self, label, menu, box):
+        """Set the menu and its label next to each other"""
+        box.addWidget(label)
+        box.addWidget(menu)
+
+    def change_image(self, previous_channel):
+        """Change the menu and image list when the image is changed"""
+        last_item = self.items[self.current_index + previous_channel]
+        channel = self.main_window.image_set.channel
+        current_image = self.main_window.image_set.current_image[channel]
+        self.current_image = current_image
+        self.current_index = self.image_names.index(current_image.image_name)
+        current_item = self.items[self.current_index]
+        self.image_list.setItemSelected(current_item, True)
+        self.image_list.setItemSelected(last_item, False)
+        self.update_menus_current_item()
+        self.create_composite_image()
+
+    def change_channel(self, previous_channel):
+        """Move to the next image when next channel is clicked"""
+        channel = self.main_window.image_set.channel
+        last_item = self.items[self.current_index + previous_channel]
+        current_item = self.items[self.current_index + channel]
+        self.image_list.setItemSelected(current_item, True)
+        self.image_list.setItemSelected(last_item, False)
+
+    def close_dialog(self):
+        """Close the dialog and save the position"""
+        self.main_window.channels_window_is_open = False
+        self.main_window.channels_window_pos = self.pos()
+        self.hide()
 
 
 class ImageSet(object):
@@ -104,24 +389,46 @@ class ImageSet(object):
         Index value of the current image
     """
     def __init__(self, filepaths):
-        # Remove any duplicate filepaths.
-        seen = {}
-        self.inlist = []
-        for filepath in filepaths:
-            if filepath not in seen:
-                seen[filepath] = 1
-                self.inlist.append(filepath)
+        # Remove any duplicate filepaths and sort the list alpha-numerically.
+        filepaths = sorted(list(set(filepaths)))
 
         # Create image objects with attributes set in ImageStamp
         # These objects contain the data ginga will use to display the image
         self.images = []
-        for filepath in self.inlist:
-            image = ImageStamp(filepath)
-            if image.pds_compatible:
-                self.images.append(image)
+        self.file_dict = {}
+        self.create_image_set(filepaths)
         self.current_image_index = 0
+        self.channel = 0
         self.current_image = self.images[self.current_image_index]
         self.enable_next_previous()
+
+    def create_image_set(self, filepaths):
+        rgb = ['R', 'G', 'B']
+        for filepath in filepaths:
+            try:
+                channels = []
+                pds_image = PDS3Image.open(filepath)
+                bands = pds_image.label['IMAGE']['BANDS']
+                if bands == 3:
+                    for n in range(bands):
+                        name = os.path.basename(filepath) + '(%s)' % (rgb[n])
+                        data = pds_image.data[:, :, n]
+                        image = ImageStamp(
+                            filepath=filepath, name=name, data_np=data,
+                            pds_image=pds_image)
+                        self.file_dict[image.image_name] = image
+                        channels.append(image)
+                    self.images.append(channels)
+                else:
+                    name = os.path.basename(filepath)
+                    data = pds_image.data
+                    image = ImageStamp(
+                        filepath=filepath, name=name, data_np=data,
+                        pds_image=pds_image)
+                    self.images.append([image])
+                    self.file_dict[image.image_name] = image
+            except:
+                pass
 
     def enable_next_previous(self):
         """Set whether the next and previous buttons are enabled."""
@@ -138,6 +445,7 @@ class ImageSet(object):
         except:
             self.current_image_index = 0
             self.current_image = self.images[self.current_image_index]
+        self.channel = 0
 
     def previous(self):
         """Display previous image and loop to last image if past first image"""
@@ -145,16 +453,30 @@ class ImageSet(object):
         if self.current_image_index < 0:
             self.current_image_index = len(self.images) - 1
         self.current_image = self.images[self.current_image_index]
+        self.channel = 0
 
-    def append(self, new_file, dipslay_first_new_image):
+    def next_channel(self):
+        number_channels = len(self.current_image)
+        if number_channels == 1:
+            return
+        self.channel += 1
+        if self.channel == number_channels:
+            self.channel = 0
+
+    def previous_channel(self):
+        number_channels = len(self.current_image)
+        if number_channels == 1:
+            return
+        self.channel -= 1
+        if self.channel < 0:
+            self.channel = number_channels - 1
+
+    def append(self, new_files, dipslay_first_new_image):
         """Append a new image to the images list if it is pds compatible"""
-        new_image = ImageStamp(new_file)
-        if new_image.pds_compatible:
-            self.images.append(new_image)
-            self.enable_next_previous()
-            self.current_image_index = dipslay_first_new_image
-            self.current_image = self.images[self.current_image_index]
-        return new_image
+        self.create_image_set(new_files)
+        self.enable_next_previous()
+        self.current_image_index = dipslay_first_new_image
+        self.current_image = self.images[self.current_image_index]
 
     def ROI_data(self, left, bottom, right, top):
         """Calculate the data in the Region of Interest
@@ -177,7 +499,7 @@ class ImageSet(object):
 
         """
 
-        data = self.current_image.cutout_data(
+        data = self.current_image[self.channel].cutout_data(
             math.ceil(left), math.ceil(bottom), math.ceil(right),
             math.ceil(top))
         return data
@@ -340,6 +662,7 @@ class PDSViewer(QtGui.QMainWindow):
         super(PDSViewer, self).__init__()
 
         self.image_set = image_set
+        self.rgb = []
 
         # Set the sub window names here. This implementation will help prevent
         # the main window from spawning duplicate children. Even if the
@@ -347,6 +670,10 @@ class PDSViewer(QtGui.QMainWindow):
         # handy reference list of windows(or dialogs in most cases) that can
         # be spawned out of this window.
         self._label_window = None
+        self._label_window_pos = None
+        self.channels_window = None
+        self.channels_window_is_open = False
+        self.channels_window_pos = None
 
         self.pds_view = ImageViewCanvas(render='widget')
         self.pds_view.set_autocut_params('zscale')
@@ -381,18 +708,30 @@ class PDSViewer(QtGui.QMainWindow):
         # toggle is found in load_file().
         open_file = QtGui.QPushButton("Open File")
         open_file.clicked.connect(self.open_file)
-        self.next_channel = QtGui.QPushButton("Next")
-        self.next_channel.clicked.connect(
+        self.next_image = QtGui.QPushButton("Next")
+        self.next_image.clicked.connect(
             lambda: self.display_image(next_image=True))
-        self.next_channel.setEnabled(image_set.next_prev_enabled)
-        self.previous_channel = QtGui.QPushButton("Previous")
-        self.previous_channel.clicked.connect(
+        self.next_image.setEnabled(image_set.next_prev_enabled)
+        self.previous_image = QtGui.QPushButton("Previous")
+        self.previous_image.clicked.connect(
             lambda: self.display_image(previous_image=True))
-        self.previous_channel.setEnabled(image_set.next_prev_enabled)
+        self.previous_image.setEnabled(image_set.next_prev_enabled)
         self.open_label = QtGui.QPushButton("Label")
         self.open_label.clicked.connect(self.display_label)
         quit_button = QtGui.QPushButton("Quit")
         quit_button.clicked.connect(self.quit)
+        self.rgb_check_box = QtGui.QCheckBox("RGB")
+        self.rgb_check_box.stateChanged.connect(self.switch_rgb)
+        self.next_channel = QtGui.QPushButton('CH +')
+        self.next_channel.clicked.connect(
+            lambda: self.display_image(next_channel=True))
+        self.previous_channel = QtGui.QPushButton('CH -')
+        self.previous_channel.clicked.connect(
+            lambda: self.display_image(previous_channel=True))
+        self.restore_defaults = QtGui.QPushButton("Restore Defaults")
+        self.restore_defaults.clicked.connect(self.restore)
+        self.channels_button = QtGui.QPushButton("Channels")
+        self.channels_button.clicked.connect(self.channels_dialog)
         # Set Text so the size of the boxes are at an appropriate size
         self.x_value = QtGui.QLabel('X: #####')
         self.y_value = QtGui.QLabel('Y: #####')
@@ -401,7 +740,7 @@ class PDSViewer(QtGui.QMainWindow):
         horizontal_align.addStretch(1)
         for button in (
                 self.x_value, self.y_value, self.pixel_value,
-                self.previous_channel, self.next_channel, open_file,
+                self.previous_image, self.next_image, open_file,
                 self.open_label, quit_button):
             horizontal_align.addWidget(button, stretch=0)
         # Region of Interest boxes
@@ -432,8 +771,13 @@ class PDSViewer(QtGui.QMainWindow):
             horizontal_align_2.addWidget(roi)
         horizontal_align_3 = QtGui.QHBoxLayout()
         horizontal_align_3.setContentsMargins(QtCore.QMargins(4, 2, 4, 2))
-        for roi in (self.median, self.min, self.max):
+        for roi in (self.median, self.min, self.max, self.rgb_check_box):
             horizontal_align_3.addWidget(roi)
+        horizontal_align_4 = QtGui.QHBoxLayout()
+        horizontal_align_4.setContentsMargins(QtCore.QMargins(4, 2, 4, 2))
+        for channel in (self.restore_defaults, self.previous_channel,
+                        self.next_channel, self.channels_button):
+            horizontal_align_4.addWidget(channel)
 
         hw = QtGui.QWidget()
         hw.setLayout(horizontal_align)
@@ -441,9 +785,12 @@ class PDSViewer(QtGui.QMainWindow):
         hw_2.setLayout(horizontal_align_2)
         hw_3 = QtGui.QWidget()
         hw_3.setLayout(horizontal_align_3)
+        hw_4 = QtGui.QWidget()
+        hw_4.setLayout(horizontal_align_4)
         vertical_align.addWidget(hw, stretch=0)
         vertical_align.addWidget(hw_2, stretch=0)
         vertical_align.addWidget(hw_3, stretch=0)
+        vertical_align.addWidget(hw_4, stretch=0)
         self.vertical_align = vertical_align
         self.horizontal_align = horizontal_align
         self.pdsview_widget = pdsview_widget
@@ -454,8 +801,61 @@ class PDSViewer(QtGui.QMainWindow):
 
         self.display_image()
 
+    def switch_rgb(self, state):
+        """Display rgb image when rgb box is checked, single band otherwise"""
+        current_image = self.image_set.current_image
+        index = self.image_set.channel
+        if state == QtCore.Qt.Checked:
+            if self.channels_window:
+                self.channels_window.rgb_check_box.setCheckState(
+                    QtCore.Qt.Checked)
+            else:
+                self.update_rgb()
+                try:
+                    datas = [band.data for band in self.rgb]
+                    composite_layers = [CompositeLayer(data) for data in datas]
+                    names = [band.image_name for band in self.rgb]
+                    composite = CompositeImage(composite_layers, names)
+                    rgb_data = composite.get_data()
+                    current_image[index].set_data(rgb_data)
+                    self.next_channel.setEnabled(False)
+                    self.previous_channel.setEnabled(False)
+                except ValueError:
+                    print("Images must be the same size")
+                    print("Use the channels button to select the bands")
+                    self.rgb_check_box.setCheckState(QtCore.Qt.Unchecked)
+        elif state == QtCore.Qt.Unchecked:
+            self.update_rgb()
+            current_image[index].set_data(current_image[index].data)
+            self.next_channel.setEnabled(True)
+            self.previous_channel.setEnabled(True)
+            if self.channels_window:
+                self.channels_window.rgb_check_box.setCheckState(
+                    QtCore.Qt.Unchecked)
+        if len(self.pds_view.objects) >= 1:
+            self.stop_ROI(self.pds_view, None, None, None)
+
+    def update_rgb(self):
+        """Update the rgb list to have the 3 channels or the next 3 images"""
+        self.rgb = []
+        current_image = self.image_set.current_image
+        if len(current_image) < 3:
+            image_index = self.image_set.current_image_index
+            while len(self.rgb) < 3:
+                for image in self.image_set.images[image_index]:
+                    self.rgb.append(image)
+                    if len(self.rgb) == 3:
+                        break
+                image_index += 1
+                if image_index == len(self.image_set.images):
+                    image_index = 0
+        else:
+            for band in current_image:
+                self.rgb.append(band)
+
     def display_values(self, pds_view, button, data_x, data_y):
         "Display the x, y, and pixel value when the mouse is pressed and moved"
+        current_image = self.image_set.current_image[self.image_set.channel]
         try:
             # When clicking inside the image
             image = pds_view.get_image()
@@ -464,13 +864,13 @@ class PDSViewer(QtGui.QMainWindow):
             value = image.get_data_xy(x, y)
             self.x_value.setText('X: %.0f' % (x))
             self.y_value.setText('Y: %.0f' % (y))
-            if self.image_set.current_image.ndim == 3:
+            if current_image.ndim == 3:
                 # Show different band values for 3 band images
                 R = str(round(value[0], 3))
                 G = str(round(value[1], 3))
                 B = str(round(value[2], 3))
                 self.pixel_value.setText('R: %s G: %s B: %s' % (R, G, B))
-            elif self.image_set.current_image.ndim == 2:
+            elif current_image.ndim == 2:
                 # Show single pixel value for 2 band images
                 self.pixel_value.setText('Value: %s' % (str(round(value, 3))))
         except:
@@ -479,9 +879,9 @@ class PDSViewer(QtGui.QMainWindow):
             y = pds_view.get_last_data_xy()[1]
             self.x_value.setText('X: %.0f' % (x))
             self.y_value.setText('Y: %.0f' % (y))
-            if self.image_set.current_image.ndim == 3:
+            if current_image.ndim == 3:
                 self.pixel_value.setText('R: 0 G: 0 B: 0')
-            elif self.image_set.current_image.ndim == 2:
+            elif current_image.ndim == 2:
                 self.pixel_value.setText('Value: 0')
 
     def display_label(self):
@@ -496,49 +896,73 @@ class PDSViewer(QtGui.QMainWindow):
 
     def open_file(self):
         """Open a new image file from a file explorer"""
-        filter = "IMG files (*.IMG)"
         file_name = QtGui.QFileDialog()
         file_name.setFileMode(QtGui.QFileDialog.ExistingFiles)
-        opens = file_name.getOpenFileNames(self, "Open IMG files", ".", filter)
-        if(opens[1] != ""):
+        new_files = file_name.getOpenFileNames(self)[0]
+        if new_files:
+            self.save_parameters()
             first_new_image = len(self.image_set.images)
-            new_files = opens[0]
-            for new_file in new_files:
-                new_image = self.image_set.append(new_file, first_new_image)
-                if not(new_image.pds_compatible):
-                    print("%s is not PDS compatible" % (new_image.file_name))
-            self.next_channel.setEnabled(self.image_set.next_prev_enabled)
-            self.previous_channel.setEnabled(self.image_set.next_prev_enabled)
+            self.image_set.append(new_files, first_new_image)
+            self.next_image.setEnabled(self.image_set.next_prev_enabled)
+            self.previous_image.setEnabled(self.image_set.next_prev_enabled)
             self.display_image()
         else:
             # integrate with logger
             print("No file selected!")
             return
 
-    def display_image(self, next_image=False, previous_image=False):
+    def channels_dialog(self):
+        """Display the channels dialog box"""
+        current_image = self.image_set.current_image[self.image_set.channel]
+        if not self.channels_window:
+            self.channels_window = ChannelsDialog(current_image, self)
+        self.channels_window_is_open = True
+        if self.channels_window_pos:
+            self.channels_window.move(self.channels_window_pos)
+        self.channels_window.show()
+
+    def display_image(self, next_image=False, previous_image=False,
+                      next_channel=False, previous_channel=False):
         """Display the current image and/or label"""
-        # Catch parameters before switching
-        last_image = self.image_set.current_image
-        last_image.sarr = self.pds_view.get_rgbmap().get_sarr()
-        last_image.zoom = self.pds_view.get_zoom()
-        last_image.rotation = self.pds_view.get_rotation()
-        last_image.transforms = self.pds_view.get_transforms()
-        last_image.cuts = self.pds_view.get_cut_levels()
+        last_channel = self.image_set.channel
 
-        # Switch image
+        # Switch image and save parameters of previous image
         if next_image:
+            self.save_parameters()
             self.image_set.next()
+            if not self.channels_window_is_open:
+                self.channels_window = None
         elif previous_image:
+            self.save_parameters()
             self.image_set.previous()
-        current_image = self.image_set.current_image
+            if not self.channels_window_is_open:
+                self.channels_window = None
+        elif next_channel:
+            self.save_parameters()
+            self.image_set.next_channel()
+            if self.channels_window:
+                self.channels_window.change_channel(last_channel)
+        elif previous_channel:
+            self.save_parameters()
+            self.image_set.previous_channel()
+            if self.channels_window:
+                self.channels_window.change_channel(last_channel)
 
-        # Reset the value boxes
-        self.x_value.setText('X: ????')
-        self.y_value.setText('Y: ????')
-        if current_image.ndim == 3:
-            self.pixel_value.setText('R: ???? G: ???? B: ????')
-        elif current_image.ndim == 2:
-            self.pixel_value.setText('Value: ????')
+        current_image = self.image_set.current_image[self.image_set.channel]
+
+        state = self.rgb_check_box.checkState()
+        self.switch_rgb(state)
+
+        # Update the channels window with the new image
+        if next_image or previous_image:
+            if self.channels_window:
+                self.update_rgb()
+                self.channels_window.change_image(last_channel)
+
+        # Disable the next/previous channels buttons when there are no channels
+        if len(self.image_set.current_image) < 3:
+            self.next_channel.setEnabled(False)
+            self.previous_channel.setEnabled(False)
 
         # Display image in viewer
         if current_image.not_been_displayed:
@@ -553,28 +977,57 @@ class PDSViewer(QtGui.QMainWindow):
             self.apply_parameters(current_image, self.pds_view)
             self.pds_view.delayed_redraw()
 
+        # Update the value box when the channel changes
+        if next_channel or previous_channel:
+            try:
+                data_x = int(self.x_value.text()[3:])
+                data_y = int(self.y_value.text()[3:])
+                self.display_values(self.pds_view, None, data_x, data_y)
+            except ValueError:
+                pass
+        else:
+            # Reset the value boxes
+            self.x_value.setText('X: ????')
+            self.y_value.setText('Y: ????')
+            if current_image.ndim == 3:
+                self.pixel_value.setText('R: ???? G: ???? B: ????')
+            elif current_image.ndim == 2:
+                self.pixel_value.setText('Value: ????')
+
         if len(self.pds_view.objects) > 1:
             self.stop_ROI(self.pds_view, None, None, None)
             self.pds_view.update_canvas()
         else:
-            self.set_ROI_text(0, 0, current_image.width, current_image.height)
+            self.set_ROI_text(
+                0, 0, current_image.width, current_image.height)
 
         # Update label
         self.image_label = current_image.label
 
         # This checks to see if the label window exists and is open. If so,
         # this resets the label field so that the label being displayed is the
-        # label for the current product.
+        # label for the current product. The label does not reset its position.
         if self._label_window is not None:
+            pos = self._label_window.pos()
             label_text = '\n'.join(self.image_label)
             self._label_window.label_contents.setText(label_text)
             if self._label_window.is_open:
                 self._label_window.cancel()
+                self._label_window.move(pos)
                 self._label_window.show()
                 self._label_window.is_open = True
                 self._label_window.activateWindow()
 
-        self.setWindowTitle(self.image_set.current_image.file_name)
+        self.setWindowTitle(current_image.image_name)
+
+    def save_parameters(self):
+        """Save the view parameters on the image"""
+        last_image = self.image_set.current_image[self.image_set.channel]
+        last_image.sarr = self.pds_view.get_rgbmap().get_sarr()
+        last_image.zoom = self.pds_view.get_zoom()
+        last_image.rotation = self.pds_view.get_rotation()
+        last_image.transforms = self.pds_view.get_transforms()
+        last_image.cuts = self.pds_view.get_cut_levels()
 
     def apply_parameters(self, image, view):
         """Display image with the images parameters"""
@@ -661,10 +1114,11 @@ class PDSViewer(QtGui.QMainWindow):
         """
 
         # If there are no draw objects, stop
+        current_image = self.image_set.current_image[self.image_set.channel]
         if len(pds_view.objects) == 1:
+            self.set_ROI_text(0, 0, current_image.width, current_image.height)
             return
 
-        current_image = self.image_set.current_image
         draw_obj = pds_view.objects[1]
 
         # Retrieve the left, right, top, & bottom x and y values
@@ -868,7 +1322,8 @@ class PDSViewer(QtGui.QMainWindow):
 
         """
 
-        data = self.image_set.ROI_data(left, bottom, right, top)
+        data = self.image_set.ROI_data(
+            left, bottom, right, top)
         # Calculate the number of pixels in the ROI
         ROI_pixels = self.image_set.ROI_pixels(left, bottom, right, top)
         self.pixels.setText('#Pixels: %s' % (str(ROI_pixels)))
@@ -915,12 +1370,12 @@ class PDSViewer(QtGui.QMainWindow):
 
         """
 
-        image_set = self.image_set
-        ROI_stdev = [image_set.ROI_std_dev(data=data[n]) for n in range(3)]
-        ROI_mean = [image_set.ROI_mean(data=data[n]) for n in range(3)]
-        ROI_median = [image_set.ROI_median(data=data[n]) for n in range(3)]
-        ROI_max = [image_set.ROI_max(data=data[n]) for n in range(3)]
-        ROI_min = [image_set.ROI_min(data=data[n]) for n in range(3)]
+        calc = self.image_set
+        ROI_stdev = [calc.ROI_std_dev(data=data[:, :, n]) for n in range(3)]
+        ROI_mean = [calc.ROI_mean(data=data[:, :, n]) for n in range(3)]
+        ROI_median = [calc.ROI_median(data=data[:, :, n]) for n in range(3)]
+        ROI_max = [int(calc.ROI_max(data=data[:, :, n])) for n in range(3)]
+        ROI_min = [int(calc.ROI_min(data=data[:, :, n])) for n in range(3)]
         for item in ROI_stdev, ROI_mean, ROI_median, ROI_min, ROI_max:
             str(item)
         self.std_dev.setText(
@@ -949,6 +1404,8 @@ class PDSViewer(QtGui.QMainWindow):
         """Close pdsview"""
         if self._label_window is not None:
             self._label_window.cancel()
+        if self.channels_window:
+            self.channels_window.hide()
         self.close()
 
 
