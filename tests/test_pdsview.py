@@ -9,6 +9,8 @@ FILE_1 = os.path.join(
     'tests', 'mission_data', '1p190678905erp64kcp2600l8c1.img')
 FILE_2 = os.path.join(
     'tests', 'mission_data', '2p129641989eth0361p2600r8m1.img')
+FILE_3 = os.path.join(
+    'tests', 'mission_data', '1p134482118erp0902p2600r8m1.img')
 
 
 def test_window_cascade(qtbot):
@@ -60,8 +62,8 @@ def test_label_refresh(qtbot):
     qtbot.addWidget(window)
     qtbot.mouseClick(window.open_label, QtCore.Qt.LeftButton)
     assert window._label_window.label_contents.toPlainText()[188:192] == "1561"
-    qtbot.mouseClick(window.next_channel, QtCore.Qt.LeftButton)
-    assert window._label_window.label_contents.toPlainText()[193:196] == "332"
+    qtbot.mouseClick(window.next_image, QtCore.Qt.LeftButton)
+    assert window._label_window.label_contents.toPlainText()[233:236] == "170"
 
 
 def test_label_load(qtbot):
@@ -100,7 +102,7 @@ def test_display_values(qtbot):
         assert window.pixel_value.text() == 'Value: 24'
     assert window.pds_view.has_callback('motion')
     # Test Values go back to default after switching images
-    qtbot.mouseClick(window.next_channel, QtCore.Qt.LeftButton)
+    qtbot.mouseClick(window.next_image, QtCore.Qt.LeftButton)
     assert window.x_value.text() == 'X: ????'
     assert window.y_value.text() == 'Y: ????'
     assert window.pixel_value.text() == 'Value: ????'
@@ -128,13 +130,14 @@ def test_apply_parameters(qtbot):
     window = pdsview.PDSViewer(test_images)
     window.show()
     qtbot.addWidget(window)
-    image1 = window.image_set.current_image
+    window.save_parameters()
+    image1 = window.image_set.current_image[0]
     assert image1.sarr[0] == 0
     assert image1.sarr[255] == 255
     assert image1.zoom == 1.0
     assert image1.rotation == 0.0
     assert image1.transforms == (False, False, False)
-    assert image1.cuts == (0.0, 0.0)
+    assert image1.cuts == (22, 26)
     # Change parameters
     image1.sarr[0] = 42
     image1.sarr[255] = 13
@@ -143,9 +146,9 @@ def test_apply_parameters(qtbot):
     window.pds_view.rotate(45)
     window.pds_view.transform(False, True, False)
     window.pds_view.cut_levels(24, 95)
-    qtbot.mouseClick(window.next_channel, QtCore.Qt.LeftButton)
+    qtbot.mouseClick(window.next_image, QtCore.Qt.LeftButton)
     # Test the second image parameters are None by defualt
-    image2 = window.image_set.current_image
+    image2 = window.image_set.current_image[0]
     assert image2.sarr is None
     assert image2.zoom is None
     assert image2.rotation is None
@@ -159,8 +162,8 @@ def test_apply_parameters(qtbot):
     assert window.pds_view.get_transforms() == (False, False, False)
     assert window.pds_view.get_cut_levels() == (15, 17)
     # Test changing back to the first image maintains image1's parameters
-    qtbot.mouseClick(window.previous_channel, QtCore.Qt.LeftButton)
-    image1 = window.image_set.current_image
+    qtbot.mouseClick(window.previous_image, QtCore.Qt.LeftButton)
+    image1 = window.image_set.current_image[0]
     assert image1.sarr[0] == 42
     assert image1.sarr[255] == 13
     assert image1.zoom == 3.0
@@ -168,7 +171,7 @@ def test_apply_parameters(qtbot):
     assert image1.transforms == (False, True, False)
     assert image1.cuts == (24, 95)
     # Test that image2 stored its parameters
-    image2 = window.image_set.images[1]
+    image2 = window.image_set.images[1][0]
     assert image2.sarr[0] == 0
     assert image2.sarr[255] == 255
     assert image2.zoom == 4.746031746031746
@@ -262,3 +265,63 @@ def test_left_right_bottom_top(qtbot):
     assert test_coords_4[0:4] == (1, 2, 1, 2)
     assert not test_coords_4[4]
     assert not test_coords_4[5]
+
+
+def test_switch_rgb(qtbot):
+    """Test switch_rgb makes a 3 band image when checked, single band else"""
+    test_images = pdsview.ImageSet([FILE_1, FILE_3])
+    window = pdsview.PDSViewer(test_images)
+    qtbot.addWidget(window)
+    # Check that intially the current image is a single band
+    assert window.image_set.current_image[0].ndim == 2
+    window.next_channel.setEnabled(False)
+    window.rgb_check_box.setCheckState(QtCore.Qt.Checked)
+    # Test the current image is now a 3 band image
+    assert window.image_set.current_image[0].ndim == 3
+    assert not window.next_channel.isEnabled()
+    window.rgb_check_box.setCheckState(QtCore.Qt.Unchecked)
+    # Test the current image is now a single band image again
+    assert window.image_set.current_image[0].ndim == 2
+
+
+def test_update_rgb(qtbot):
+    """Test update_rgb chooses the correc images to add to rgb list"""
+    test_images = pdsview.ImageSet([FILE_1, FILE_3])
+    window = pdsview.PDSViewer(test_images)
+    qtbot.addWidget(window)
+    window.update_rgb()
+    image_1 = window.image_set.images[0][0]
+    image_2 = window.image_set.images[1][0]
+    image_3 = window.image_set.images[0][0]
+    assert window.rgb == [image_1, image_2, image_3]
+    # TODO: Test with a 3 band image
+
+
+def test_restore(qtbot):
+    """Test restore resets any changes to defaults"""
+    test_images = pdsview.ImageSet([FILE_1, FILE_2])
+    window = pdsview.PDSViewer(test_images)
+    window.show()
+    qtbot.addWidget(window)
+    window.save_parameters()
+    image1 = window.pds_view.get_image()
+    # Initial checks
+    assert image1.sarr[0] == 0
+    assert image1.sarr[255] == 255
+    assert image1.zoom == 1.0
+    assert image1.rotation == 0.0
+    assert image1.transforms == (False, False, False)
+    assert image1.cuts == (22, 26)
+    # Change parameters
+    window.pds_view.zoom_to(3)
+    window.pds_view.rotate(45)
+    window.pds_view.transform(False, True, False)
+    window.pds_view.cut_levels(24, 95)
+    # Restore back to defaults
+    qtbot.mouseClick(window.restore_defaults, QtCore.Qt.LeftButton)
+    assert image1.sarr[0] == 0
+    assert image1.sarr[255] == 255
+    assert image1.zoom == 1.0
+    assert image1.rotation == 0.0
+    assert image1.transforms == (False, False, False)
+    assert image1.cuts == (22, 26)
