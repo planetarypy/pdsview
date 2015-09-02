@@ -8,8 +8,8 @@ pdsview - A Python PDS Image Viewer
 .. image:: https://img.shields.io/pypi/v/pdsview.svg
         :target: https://pypi.python.org/pypi/pdsview
 
-**NOTE** This is Alpha quality software that is being actively developed, use
-at your own risk.
+**NOTE:** This is Alpha quality software that is being actively developed, use
+at your own risk.  This software is not produced by NASA.
 
 * Free software: BSD license
 * Documentation: https://pdsview.readthedocs.org.
@@ -19,8 +19,8 @@ Features
 
 * NASA PDS Image Viewer
 
-NOTE: This is alpha quality software.  It lacks many features and lacks support
-for many PDS image types.
+**NOTE:** This is alpha quality software.  It lacks many features and lacks
+support for many PDS image types.  This software is not produced by NASA.
 
 Install
 -------
