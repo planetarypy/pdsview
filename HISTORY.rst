@@ -3,6 +3,17 @@
 History
 -------
 
+0.4.0 (2015-08-30)
+---------------------
+
+* Clicking on a point in an image now shows the image coordinates and pixel
+  value at that location.
+* Right clicking and dragging on the image will now create a region of interest.
+  Statistics about that region of interest are shown.
+* Composite RGB images can now be displayed by using the new Channels dialog and
+  checking the RGB toggle.
+
+
 0.3.0 (2015-08-03)
 ---------------------
 
@@ -16,6 +27,7 @@ History
 * Cleaned up with parts rewritten.
 * Takes files as command line arguments.
 * Handles mutiple images.
+
 
 0.1.0 (2015-06-06)
 ---------------------
