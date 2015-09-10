@@ -33,7 +33,7 @@ setup(
                  'pdsview'},
     include_package_data=True,
     install_requires=[
-        'ginga>=2.1',
+        'ginga>=2.5',
         'planetaryimage>=0.1.0',
         'PySide>=1.2.0',
         'astropy>=1.0.2'
