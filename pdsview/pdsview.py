@@ -405,7 +405,10 @@ class ImageSet(object):
         self.create_image_set(filepaths)
         self.current_image_index = 0
         self.channel = 0
-        self.current_image = self.images[self.current_image_index]
+        if self.images:
+            self.current_image = self.images[self.current_image_index]
+        else:
+            self.current_image = None
         self.enable_next_previous()
 
     def create_image_set(self, filepaths):
@@ -482,6 +485,8 @@ class ImageSet(object):
     def append(self, new_files, dipslay_first_new_image):
         """Append a new image to the images list if it is pds compatible"""
         self.create_image_set(new_files)
+        if dipslay_first_new_image == len(self.images):
+            return
         self.enable_next_previous()
         self.current_image_index = dipslay_first_new_image
         self.current_image = self.images[self.current_image_index]
@@ -807,7 +812,8 @@ class PDSViewer(QtGui.QMainWindow):
         self.setCentralWidget(vw)
         vw.setLayout(vertical_align)
 
-        self.display_image()
+        if self.image_set.current_image:
+            self.display_image()
 
     def switch_rgb(self, state):
         """Display rgb image when rgb box is checked, single band otherwise"""
@@ -908,9 +914,14 @@ class PDSViewer(QtGui.QMainWindow):
         file_name.setFileMode(QtGui.QFileDialog.ExistingFiles)
         new_files = file_name.getOpenFileNames(self)[0]
         if new_files:
-            self.save_parameters()
+            if self.image_set.current_image:
+                self.save_parameters()
             first_new_image = len(self.image_set.images)
             self.image_set.append(new_files, first_new_image)
+            # If there are no new images, don't continue
+            if first_new_image == len(self.image_set.images):
+                print ("The image(s) chosen are not PDS compatible")
+                return
             self.next_image.setEnabled(self.image_set.next_prev_enabled)
             self.previous_image.setEnabled(self.image_set.next_prev_enabled)
             self.display_image()
@@ -975,13 +986,13 @@ class PDSViewer(QtGui.QMainWindow):
         # Display image in viewer
         if current_image.not_been_displayed:
             # If it is the first time the image is shown, show with defaults
-            self.pds_view.set_image(current_image, redraw=False)
+            self.pds_view.set_image(current_image)
             self.restore()
             self.pds_view.delayed_redraw()
             current_image.not_been_displayed = False
         else:
             # Set the current image with the images last parameters
-            self.pds_view.set_image(current_image, redraw=False)
+            self.pds_view.set_image(current_image)
             self.apply_parameters(current_image, self.pds_view)
             self.pds_view.delayed_redraw()
 
