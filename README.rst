@@ -2,8 +2,8 @@
 pdsview - A Python PDS Image Viewer
 ====================================
 
-.. image:: https://img.shields.io/travis/planetarypy/pdsview.svg
-        :target: https://travis-ci.org/planetarypy/pdsview
+.. image:: https://travis-ci.org/planetarypy/pdsview.svg?branch=master
+   :target: https://travis-ci.org/planetarypy/pdsview
 
 .. image:: https://img.shields.io/pypi/v/pdsview.svg
         :target: https://pypi.python.org/pypi/pdsview
@@ -49,16 +49,16 @@ Screen Shots
 
 Default View:
 
-.. image:: /screenshots/pdsview_sc_1.png
+.. image:: docs/screenshots/pdsview_sc_1.png
 
 Region of Interest:
 
-.. image:: /screenshots/pdsview_sc_2.png
+.. image:: docs/screenshots/pdsview_sc_2.png
 
 Composite False Color Image:
 
-.. image:: /screenshots/pdsview_sc_3.png
+.. image:: docs/screenshots/pdsview_sc_3.png
 
 View Label and make alterations to image:
 
-.. image:: /screenshots/pdsview_sc_4.png
+.. image:: docs/screenshots/pdsview_sc_4.png
