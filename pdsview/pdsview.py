@@ -421,7 +421,7 @@ class ImageSet(object):
                 if bands == 3:
                     for n in range(bands):
                         name = os.path.basename(filepath) + '(%s)' % (rgb[n])
-                        data = pds_image.data[:, :, n]
+                        data = pds_image.image[:, :, n]
                         image = ImageStamp(
                             filepath=filepath, name=name, data_np=data,
                             pds_image=pds_image)
@@ -430,7 +430,7 @@ class ImageSet(object):
                     self.images.append(channels)
                 else:
                     name = os.path.basename(filepath)
-                    data = pds_image.data
+                    data = pds_image.image
                     image = ImageStamp(
                         filepath=filepath, name=name, data_np=data,
                         pds_image=pds_image)
@@ -512,9 +512,12 @@ class ImageSet(object):
 
         """
 
+        left = int(math.ceil(left))
+        bottom = int(math.ceil(bottom))
+        right = int(math.ceil(right))
+        top = int(math.ceil(top))
         data = self.current_image[self.channel].cutout_data(
-            math.ceil(left), math.ceil(bottom), math.ceil(right),
-            math.ceil(top))
+            left, bottom, right, top)
         return data
 
     def ROI_pixels(self, left, bottom, right, top):
