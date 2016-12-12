@@ -20,7 +20,7 @@ requirements = [
 
 setup(
     name='pdsview',
-    version='0.4.1',
+    version='0.4.2',
     description="PDS Image Viewer",
     long_description=readme + '\n\n' + history,
     author="PlanetaryPy Developers",
