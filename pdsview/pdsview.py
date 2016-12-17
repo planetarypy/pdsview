@@ -16,6 +16,7 @@ from planetaryimage import PDS3Image
 import argparse
 import math
 import numpy
+import warnings
 
 STD_FORMAT = '%(asctime)s | %(levelname)1.1s | %(filename)s:%(lineno)d (%(funcName)s) | %(message)s'
 #
@@ -437,7 +438,7 @@ class ImageSet(object):
                     self.images.append([image])
                     self.file_dict[image.image_name] = image
             except:
-                pass
+                warnings.warn(filepath + " cannnot be opened")
 
     def enable_next_previous(self):
         """Set whether the next and previous buttons are enabled."""
@@ -923,7 +924,7 @@ class PDSViewer(QtGui.QMainWindow):
             self.image_set.append(new_files, first_new_image)
             # If there are no new images, don't continue
             if first_new_image == len(self.image_set.images):
-                print ("The image(s) chosen are not PDS compatible")
+                warnings.warn("The image(s) chosen are not PDS compatible")
                 return
             self.next_image.setEnabled(self.image_set.next_prev_enabled)
             self.previous_image.setEnabled(self.image_set.next_prev_enabled)
