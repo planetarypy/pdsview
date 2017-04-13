@@ -36,7 +36,8 @@ setup(
         'ginga==2.6.0',
         'planetaryimage==0.5.0',
         'PySide==1.2.1',
-        'astropy==1.2.1'
+        'astropy==1.2.1',
+        'matplotlib==1.5.1'
     ],
     license="BSD",
     zip_safe=False,
