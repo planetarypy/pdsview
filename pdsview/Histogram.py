@@ -47,6 +47,11 @@ class HistogramWidget(QtGui.QWidget):
             except ValueError:
                 print("The cut low and high values must be numbers.")
 
+    def restore(self):
+        cut_low, cut_high = self.view.get_cut_levels()
+        self.histogram.change_cuts(cut_low, cut_high)
+        self.set_cut_boxes()
+
 
 class Histogram(FigureCanvasQTAgg):
 
@@ -81,6 +86,8 @@ class Histogram(FigureCanvasQTAgg):
 
     def change_cuts(self, cut_low=None, cut_high=None):
         if cut_low is None and cut_high is None:
+            return
+        if self.left_vline is None and self.right_vline is None:
             return
         if cut_low == self.leftx and cut_high == self.rightx:
             return

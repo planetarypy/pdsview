@@ -1081,6 +1081,7 @@ class PDSViewer(QtGui.QMainWindow):
         # transform bools will change in the future
         self.pds_view.transform(False, False, False)
         self.pds_view.zoom_fit()
+        self.histogram.restore()
 
     def start_ROI(self, pds_view, button, data_x, data_y):
         """Ensure only one Region of Interest (ROI) exists at a time
