@@ -770,7 +770,7 @@ class PDSViewer(QtGui.QMainWindow):
             info_box.setMinimumSize(info_box.sizeHint())
             info_box.setMaximumSize(info_box.sizeHint())
 
-        self.histogram = HistogramWidget(self.pds_view)
+        self.histogram = HistogramWidget(self.pds_view, 100)
 
         main_layout.addWidget(open_file, 0, 0)
         main_layout.addWidget(quit_button, 0, 1)
