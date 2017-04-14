@@ -5,167 +5,278 @@ import numpy as np
 import warnings
 
 
+class HistogramModel(object):
+
+    def __init__(self, image_view, cut_low=None, cut_high=None, bins=100):
+
+        self._image_view = image_view
+        self._listeners = set()
+        self._cut_low = cut_low
+        self._cut_high = cut_high
+        self._bins = bins
+
+    @property
+    def image_view(self):
+        return self._image_view
+
+    @property
+    def cut_low(self):
+        return self._cut_low
+
+    @property
+    def cut_high(self):
+        return self._cut_high
+
+    @property
+    def bins(self):
+        return self._bins
+
+    @property
+    def cuts(self):
+        if self.cut_low is not None and self.cut_high is not None:
+            cut_low, cut_high = self.cut_low, self.cut_high
+        else:
+            cut_low, cut_high = self.view_cuts
+        return cut_low, cut_high
+
+    @property
+    def view_cuts(self):
+        return self.image_view.get_cut_levels()
+
+    @property
+    def data(self):
+        return self.image_view.get_image().data
+
+    def register(self, listener):
+        self._listeners.add(listener)
+
+    def unregister(self, listener):
+        self._listeners.remove(listener)
+
+    def set_image_view(self):
+        self._image_view = image_view
+
+    def set_cut_low(self, cut_low):
+        self._cut_low = cut_low
+        self._set_view_cuts()
+        self._change_cut_low()
+
+    def set_cut_high(self, cut_high):
+        self._cut_high = cut_high
+        self._set_view_cuts()
+        self._change_cut_high()
+
+    def set_cuts(self, cut_low, cut_high):
+        if cut_low > cut_high:
+            warnings.warn(
+                "The low cut cannot be bigger than the high cut." +
+                "Switching cuts.")
+            cut_low, cut_high = cut_high, cut_low
+
+        diff_cut_low = cut_low != self.cut_low
+        diff_cut_high = cut_high != self.cut_high
+        if diff_cut_low and diff_cut_high:
+            self._cut_low = cut_low
+            self._cut_high = cut_high
+            self._set_view_cuts()
+            self._change_cuts()
+        elif diff_cut_low:
+            self.set_cut_low(cut_low)
+        elif diff_cut_high:
+            self.set_cut_high(cut_high)
+
+    def reset_cuts(self):
+        self._cut_low, self._cut_high = self.view_cuts
+        self._change_cuts()
+
+    def set_bins(self, bins):
+        if bins == self._bins:
+            return
+        self._bins = bins
+        self._change_bins()
+
+    def set_data(self):
+        for listener in self._listeners:
+            listener.set_data()
+
+    def restore(self):
+        cut_low, cut_high = self.view_cuts
+        self.set_cuts(cut_low, cut_high)
+
+    def _set_view_cuts(self):
+        self.image_view.cut_levels(self.cut_low, self.cut_high)
+
+    def _change_cut_low(self):
+        for listener in self._listeners:
+            listener.change_cut_low()
+
+    def _change_cut_high(self):
+        for listener in self._listeners:
+            listener.change_cut_high()
+    def _change_cuts(self):
+        for listener in self._listeners:
+            listener.change_cuts()
+
+    def _change_bins(self):
+        for listener in self._listeners:
+            listener.change_bins()
+
+
+
 class HistogramWidget(QtGui.QWidget):
 
-    def __init__(self, view=None, bins=100):
+    def __init__(self, model):
 
         super(HistogramWidget, self).__init__()
-        self.view = view
-        self.histogram = Histogram(self, view)
-        self.cut_low_label = QtGui.QLabel("Cut Low:")
-        self.cut_low = QtGui.QLineEdit()
-        self.cut_high_label = QtGui.QLabel("Cut High:")
-        self.cut_high = QtGui.QLineEdit()
-        self.bins_label = QtGui.QLabel("Bins:")
-        self.bins = QtGui.QLineEdit()
-        layout = self.create_layout()
+        self.model = model
+        self.model.register(self)
+        self._histogram = Histogram(model)
+        self._cut_low_label = QtGui.QLabel("Cut Low:")
+        self._cut_low_box = QtGui.QLineEdit()
+        self._cut_high_label = QtGui.QLabel("Cut High:")
+        self._cut_high_box = QtGui.QLineEdit()
+        self._bins_label = QtGui.QLabel("Bins:")
+        self._bins_box = QtGui.QLineEdit()
+        layout = self._create_layout()
         self.setLayout(layout)
+        self.change_bins()
+        self.change_cuts()
 
-    def create_layout(self):
+    def _create_layout(self):
         layout = QtGui.QVBoxLayout()
         cut_boxes_layout = QtGui.QGridLayout()
-        cut_boxes_layout.addWidget(self.cut_low_label, 0, 0)
-        cut_boxes_layout.addWidget(self.cut_low, 0, 1)
-        cut_boxes_layout.addWidget(self.cut_high_label, 0, 2)
-        cut_boxes_layout.addWidget(self.cut_high, 0, 3)
-        cut_boxes_layout.addWidget(self.bins_label, 0, 4)
-        cut_boxes_layout.addWidget(self.bins, 0, 5)
+        cut_boxes_layout.addWidget(self._cut_low_label, 0, 0)
+        cut_boxes_layout.addWidget(self._cut_low_box, 0, 1)
+        cut_boxes_layout.addWidget(self._cut_high_label, 0, 2)
+        cut_boxes_layout.addWidget(self._cut_high_box, 0, 3)
+        cut_boxes_layout.addWidget(self._bins_label, 0, 4)
+        cut_boxes_layout.addWidget(self._bins_box, 0, 5)
         cut_boxes = QtGui.QWidget()
         cut_boxes.setLayout(cut_boxes_layout)
-        layout.addWidget(self.histogram)
+        layout.addWidget(self._histogram)
         layout.addWidget(cut_boxes)
 
         return layout
 
-    def set_cut_boxes(self):
-        cut_low, cut_high = self.histogram.cuts
-        self.cut_low.setText("%.3f" % (cut_low))
-        self.cut_high.setText("%.3f" % (cut_high))
+    def change_cut_low(self):
+        self._cut_low_box.setText("%.3f" % (self.model.cut_low))
 
-    def set_bins(self):
-        self.bins.setText("%d" % (self.histogram.bins))
+    def change_cut_high(self):
+        self._cut_high_box.setText("%.3f" % (self.model.cut_high))
+
+    def change_cuts(self):
+        cut_low, cut_high = self.model.cuts
+        self._cut_low_box.setText("%.3f" % (cut_low))
+        self._cut_high_box.setText("%.3f" % (cut_high))
+
+    def change_bins(self):
+        self._bins_box.setText("%d" % (self.model.bins))
 
     def keyPressEvent(self, event):
         if event.key() in (QtCore.Qt.Key_Return, QtCore.Qt.Key_Enter):
             try:
-                cut_low = float(self.cut_low.text())
-                cut_high = float(self.cut_high.text())
+                cut_low = float(self._cut_low_box.text())
+                cut_high = float(self._cut_high_box.text())
             except ValueError:
                 warnings.warn("The cut low and high values must be numbers.")
-                self.set_cut_boxes()
+                self.change_cuts()
                 return
 
             try:
-                bins_text = self.bins.text()
+                bins_text = self._bins_box.text()
                 bins = int(bins_text)
             except ValueError:
                 warnings.warn(
                     "The number of bins must be a integer." +
                     "Attempting to round down to nearest integer")
                 try:
-                    bins = int(float(self.bins.text()))
+                    bins = int(float(bins_text))
                 except ValueError:
                     warnings.warn("The number of bins must be a number")
+                    self.change_bins()
                     return
 
-            self.histogram.change_cuts(cut_low, cut_high)
-            self.histogram.change_bins(bins)
+            self.model.set_cuts(cut_low, cut_high)
+            self.model.set_bins(bins)
 
-    def restore(self):
-        cut_low, cut_high = self.view.get_cut_levels()
-        self.histogram.change_cuts(cut_low, cut_high)
-        self.set_cut_boxes()
+    # def restore(self):
+    #     self.model.restore()
+
+    def set_data(self):
+        pass
 
 
 class Histogram(FigureCanvasQTAgg):
 
-    def __init__(self, parent=None, view=None, bins=100):
+    def __init__(self, model):
         fig = Figure(figsize=(2, 2), dpi=100)
         fig.subplots_adjust(
             left=0.0, right=1.0, top=1.0, bottom=0.0, wspace=0.0,
             hspace=0.0)
         super(Histogram, self).__init__(fig)
 
-        self.parent = parent
-        self.view = view
-        self.bins = bins
-        self.figure = fig
+        self.model = model
+        self.model.register(self)
+        self._figure = fig
         policy = self.sizePolicy()
         policy.setHeightForWidth(True)
         self.setSizePolicy(policy)
         self.setMinimumSize(self.size())
-        self.ax = fig.add_subplot(111)
-        self.ax.set_axis_bgcolor('black')
-        self.left_vline = None
-        self.right_vline = None
-        self.leftx = None
-        self.rightx = None
+        self._ax = fig.add_subplot(111)
+        self._ax.set_axis_bgcolor('black')
+        self._left_vline = None
+        self._right_vline = None
 
-    @property
-    def cuts(self):
-        if self.leftx is not None and self.rightx is not None:
-            cut_low, cut_high = self.leftx, self.rightx
-        else:
-            cut_low, cut_high = self.view.get_cut_levels()
-        return cut_low, cut_high
+    def change_cut_low(self, draw=True):
+        if self._left_vline is None:
+            return
+        self._left_vline.set_xdata([self.model.cut_low, self.model.cut_low])
+        if draw:
+            self.draw()
 
-    def change_cuts(self, cut_low=None, cut_high=None):
-        if cut_low is None and cut_high is None:
+    def change_cut_high(self, draw=True):
+        if self._right_vline is None:
             return
-        if self.left_vline is None and self.right_vline is None:
-            return
-        if cut_low == self.leftx and cut_high == self.rightx:
-            return
-        cut_low = self.leftx if cut_low is None else cut_low
-        cut_high = self.rightx if cut_high is None else cut_high
-        if cut_low > cut_high:
-            warnings.warn(
-                "The low cut cannot be bigger than the high cut." +
-                "Switching cuts.")
-            cut_low, cut_high = cut_high, cut_low
-        self.leftx = cut_low
-        self.rightx = cut_high
-        self.left_vline.set_xdata([cut_low, cut_low])
-        self.right_vline.set_xdata([cut_high, cut_high])
-        self.view.cut_levels(cut_low, cut_high)
-        self.parent.set_cut_boxes()
+        self._right_vline.set_xdata([self.model.cut_high, self.model.cut_high])
+        if draw:
+            self.draw()
+
+    def change_cuts(self):
+        self.change_cut_low(draw=False)
+        self.change_cut_high(draw=False)
         self.draw()
 
-    def change_bins(self, bins):
-        if bins == self.bins:
-            return
-        self.bins = bins
-        self.set_data(self.view.get_image().data)
+    def change_bins(self):
+        self.set_data(False)
 
-    def set_data(self, data):
-        self.ax.cla()
-        self.ax.hist(data.flatten(), self.bins, color='white')
-        self.set_vlines()
-        if self.parent is not None:
-            self.parent.set_cut_boxes()
-            self.parent.set_bins()
+    def set_data(self, reset_vlines=True):
+        self._ax.cla()
+        self._left_vline = None
+        self._right_vline = None
+        self._ax.hist(self.model.data.flatten(), self.model.bins, color='white')
+        self._set_vlines(reset_vlines)
         self.draw()
 
-    def move_line(self, event):
+    def _move_line(self, event):
         if not event.inaxes or event.button != 1:
             return
-        X = event.xdata
-        cut_low, cut_high = self.cuts
-        if np.abs(X - self.leftx) < np.abs(X - self.rightx):
-            self.left_vline.set_xdata([X, X])
-            cut_low = X
+        x = event.xdata
+        cut_low, cut_high = self.model.cuts
+        if np.abs(x - self.model.cut_low) < np.abs(x - self.model.cut_high):
+            self.model.set_cut_low(x)
         else:
-            self.right_vline.set_xdata([X, X])
-            cut_high = X
-        self.change_cuts(cut_low, cut_high)
+            self.model.set_cut_high(x)
 
-    def set_vlines(self):
-        cut_low, cut_high = self.view.get_cut_levels()
-        self.left_vline = self.ax.axvline(
+    def _set_vlines(self, reset=True):
+        if reset:
+            self.model.reset_cuts()
+        cut_low, cut_high = self.model.cuts
+        self._left_vline = self._ax.axvline(
             cut_low, color='r', linewidth=2)
-        self.right_vline = self.ax.axvline(
+        self._right_vline = self._ax.axvline(
             cut_high, color='r', linewidth=2)
-        self.figure.canvas.mpl_connect('motion_notify_event', self.move_line)
-        self.figure.canvas.mpl_connect('button_press_event', self.move_line)
-        self.leftx = cut_low
-        self.rightx = cut_high
+        self._figure.canvas.mpl_connect('motion_notify_event', self._move_line)
+        self._figure.canvas.mpl_connect('button_press_event', self._move_line)
+
+    # def restore(self):
+    #     self.model.restore()

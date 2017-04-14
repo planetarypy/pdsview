@@ -18,7 +18,7 @@ import math
 import numpy
 import warnings
 
-from Histogram import HistogramWidget
+from Histogram import HistogramWidget, HistogramModel
 
 STD_FORMAT = '%(asctime)s | %(levelname)1.1s | %(filename)s:%(lineno)d (%(funcName)s) | %(message)s'
 #
@@ -770,7 +770,8 @@ class PDSViewer(QtGui.QMainWindow):
             info_box.setMinimumSize(info_box.sizeHint())
             info_box.setMaximumSize(info_box.sizeHint())
 
-        self.histogram = HistogramWidget(self.pds_view, 100)
+        self.histogram = HistogramModel(self.pds_view, bins=100)
+        histogram_widget = HistogramWidget(self.histogram)
 
         main_layout.addWidget(open_file, 0, 0)
         main_layout.addWidget(quit_button, 0, 1)
@@ -788,7 +789,7 @@ class PDSViewer(QtGui.QMainWindow):
         main_layout.addWidget(self.open_label, 3, 1)
         main_layout.addWidget(self.restore_defaults, 4, 0)
         main_layout.addWidget(self.rgb_check_box, 4, 1)
-        main_layout.addWidget(self.histogram, 5, 0, 2, 2)
+        main_layout.addWidget(histogram_widget, 5, 0, 2, 2)
         main_layout.addWidget(self.x_value, 7, 0)
         main_layout.addWidget(self.y_value, 7, 1)
         main_layout.addWidget(self.pixel_value, 8, 0, 1, 2)
@@ -983,13 +984,13 @@ class PDSViewer(QtGui.QMainWindow):
             self.restore()
             self.pds_view.delayed_redraw()
             current_image.not_been_displayed = False
-            self.histogram.histogram.set_data(current_image.data)
+            self.histogram.set_data()
         else:
             # Set the current image with the images last parameters
             self.pds_view.set_image(current_image)
             self.apply_parameters(current_image, self.pds_view)
             self.pds_view.delayed_redraw()
-            self.histogram.histogram.set_data(current_image.data)
+            self.histogram.set_data()
 
         # Update the value box when the channel changes
         if next_channel or previous_channel:
