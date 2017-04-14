@@ -48,8 +48,8 @@ class HistogramWidget(QtGui.QWidget):
     def keyPressEvent(self, event):
         if event.key() in (QtCore.Qt.Key_Return, QtCore.Qt.Key_Enter):
             try:
-                cut_high = float(self.cut_high.text())
                 cut_low = float(self.cut_low.text())
+                cut_high = float(self.cut_high.text())
             except ValueError:
                 warnings.warn("The cut low and high values must be numbers.")
                 self.set_cut_boxes()
@@ -118,6 +118,11 @@ class Histogram(FigureCanvasQTAgg):
             return
         cut_low = self.leftx if cut_low is None else cut_low
         cut_high = self.rightx if cut_high is None else cut_high
+        if cut_low > cut_high:
+            warnings.warn(
+                "The low cut cannot be bigger than the high cut." +
+                "Switching cuts.")
+            cut_low, cut_high = cut_high, cut_low
         self.leftx = cut_low
         self.rightx = cut_high
         self.left_vline.set_xdata([cut_low, cut_low])
