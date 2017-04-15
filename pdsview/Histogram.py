@@ -1,8 +1,11 @@
-from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg
+import warnings
+
+import numpy as np
 from matplotlib.figure import Figure
 from ginga.qtw.QtHelp import QtGui, QtCore
-import numpy as np
-import warnings
+from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg
+
+from WarningTimer import WarningTimer, WarningTimerModel
 
 
 class HistogramModel(object):
@@ -53,7 +56,7 @@ class HistogramModel(object):
     def unregister(self, listener):
         self._listeners.remove(listener)
 
-    def set_image_view(self):
+    def set_image_view(self, image_view):
         self._image_view = image_view
 
     def set_cut_low(self, cut_low):
@@ -68,9 +71,10 @@ class HistogramModel(object):
 
     def set_cuts(self, cut_low, cut_high):
         if cut_low > cut_high:
-            warnings.warn(
-                "The low cut cannot be bigger than the high cut." +
+            message = (
+                "The low cut cannot be bigger than the high cut. " +
                 "Switching cuts.")
+            self.warn("Cut Warning", message)
             cut_low, cut_high = cut_high, cut_low
 
         diff_cut_low = cut_low != self.cut_low
@@ -103,6 +107,13 @@ class HistogramModel(object):
         cut_low, cut_high = self.view_cuts
         self.set_cuts(cut_low, cut_high)
 
+    def warn(self, title, message):
+        warnings.warn(message)
+        for listener in self._listeners:
+            warned = listener.warn(title, message)
+            if warned:
+                break
+
     def _set_view_cuts(self):
         self.image_view.cut_levels(self.cut_low, self.cut_high)
 
@@ -113,6 +124,7 @@ class HistogramModel(object):
     def _change_cut_high(self):
         for listener in self._listeners:
             listener.change_cut_high()
+
     def _change_cuts(self):
         for listener in self._listeners:
             listener.change_cuts()
@@ -120,7 +132,6 @@ class HistogramModel(object):
     def _change_bins(self):
         for listener in self._listeners:
             listener.change_bins()
-
 
 
 class HistogramWidget(QtGui.QWidget):
@@ -178,7 +189,9 @@ class HistogramWidget(QtGui.QWidget):
                 cut_low = float(self._cut_low_box.text())
                 cut_high = float(self._cut_high_box.text())
             except ValueError:
-                warnings.warn("The cut low and high values must be numbers.")
+                self.warn(
+                    "Cuts Warning",
+                    "The cut low and high values must be numbers.")
                 self.change_cuts()
                 return
 
@@ -186,13 +199,15 @@ class HistogramWidget(QtGui.QWidget):
                 bins_text = self._bins_box.text()
                 bins = int(bins_text)
             except ValueError:
-                warnings.warn(
+                message = (
                     "The number of bins must be a integer." +
                     "Attempting to round down to nearest integer")
                 try:
                     bins = int(float(bins_text))
                 except ValueError:
-                    warnings.warn("The number of bins must be a number")
+                    message = ("The number of bins must be a number. " +
+                               "Specifically, an integer.")
+                    self.warn("Bins Warning", message)
                     self.change_bins()
                     return
 
@@ -201,6 +216,10 @@ class HistogramWidget(QtGui.QWidget):
 
     # def restore(self):
     #     self.model.restore()
+
+    def warn(self, title, message):
+        WarningTimer(WarningTimerModel(self, title, message)).exec_()
+        return True
 
     def set_data(self):
         pass
@@ -253,7 +272,8 @@ class Histogram(FigureCanvasQTAgg):
         self._ax.cla()
         self._left_vline = None
         self._right_vline = None
-        self._ax.hist(self.model.data.flatten(), self.model.bins, color='white')
+        self._ax.hist(
+            self.model.data.flatten(), self.model.bins, color='white')
         self._set_vlines(reset_vlines)
         self.draw()
 
@@ -278,5 +298,5 @@ class Histogram(FigureCanvasQTAgg):
         self._figure.canvas.mpl_connect('motion_notify_event', self._move_line)
         self._figure.canvas.mpl_connect('button_press_event', self._move_line)
 
-    # def restore(self):
-    #     self.model.restore()
+    def warn(self, title, message):
+        return False
