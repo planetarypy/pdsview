@@ -48,13 +48,6 @@ class HistogramModel(object):
 
     @image_view.setter
     def image_view(self, image_view):
-        """Set the image view
-
-        Parameters
-        ----------
-        image_view : :class:`ImageViewCanvas`
-            The image view canvas
-        """
         self._image_view = image_view
         self.set_data()
 
@@ -262,7 +255,7 @@ class HistogramWidget(QtGui.QWidget):
         self.model = model
         self.model.register(self)
         self.controller = HistogramController(self.model, self)
-        self._histogram = Histogram(model)
+        self.histogram = Histogram(model)
         self._cut_low_label = QtGui.QLabel("Cut Low:")
         self._cut_low_box = QtGui.QLineEdit()
         self._cut_high_label = QtGui.QLabel("Cut High:")
@@ -285,7 +278,7 @@ class HistogramWidget(QtGui.QWidget):
         cut_boxes_layout.addWidget(self._bins_box, 0, 5)
         cut_boxes = QtGui.QWidget()
         cut_boxes.setLayout(cut_boxes_layout)
-        layout.addWidget(self._histogram)
+        layout.addWidget(self.histogram)
         layout.addWidget(cut_boxes)
 
         return layout

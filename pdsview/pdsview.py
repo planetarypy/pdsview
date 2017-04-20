@@ -758,6 +758,8 @@ class PDSViewer(QtGui.QMainWindow):
             'Median: R: ######## G: ######## B: ########')
         self.min = QtGui.QLabel('Min: R: ### G: ### B: ###')
         self.max = QtGui.QLabel('Max: R: ### G: ### B: ###')
+
+        main_layout.setHorizontalSpacing(10)
         # Set format for each information box to be the same
         for info_box in (self.x_value, self.y_value, self.pixel_value,
                          self.pixels, self.std_dev, self.mean, self.median,
@@ -767,11 +769,33 @@ class PDSViewer(QtGui.QMainWindow):
             info_box.setLineWidth(3)
             info_box.setMidLineWidth(1)
             info_box.setAlignment(QtCore.Qt.AlignBottom | QtCore.Qt.AlignLeft)
-            info_box.setMinimumSize(info_box.sizeHint())
-            info_box.setMaximumSize(info_box.sizeHint())
+
+        for main_box, second_box in ((self.std_dev, self.pixels),
+                                     (self.mean, self.median),
+                                     (self.min, self.max)):
+            main_box.setMinimumSize(main_box.sizeHint())
+            main_box.setMaximumSize(main_box.sizeHint())
+            second_box.setMinimumSize(main_box.sizeHint())
+            second_box.setMaximumSize(main_box.sizeHint())
 
         self.histogram = HistogramModel(self.pds_view, bins=100)
         histogram_widget = HistogramWidget(self.histogram)
+        min_width = histogram_widget.histogram.width()
+        for widget in (open_file, self.next_image, self.previous_image,
+                       self.channels_button, self.open_label,
+                       self.restore_defaults, self.rgb_check_box, self.x_value,
+                       self.y_value, quit_button, self.next_channel,
+                       self.previous_channel, self.pixel_value):
+            widget.setMinimumWidth(min_width)
+            widget.setMaximumWidth(min_width)
+        fixed_size = self.pixel_value.sizeHint().width()
+        self.x_value.setMinimumWidth(fixed_size / 2)
+        self.x_value.setMaximumWidth(fixed_size / 2)
+        self.y_value.setMinimumWidth(fixed_size / 2)
+        self.y_value.setMaximumWidth(fixed_size / 2)
+        column_spacing_x_y = 5
+        self.pixel_value.setMinimumWidth(fixed_size + column_spacing_x_y)
+        self.pixel_value.setMaximumWidth(fixed_size + column_spacing_x_y)
 
         main_layout.addWidget(open_file, 0, 0)
         main_layout.addWidget(quit_button, 0, 1)
@@ -790,12 +814,16 @@ class PDSViewer(QtGui.QMainWindow):
         main_layout.addWidget(self.restore_defaults, 4, 0)
         main_layout.addWidget(self.rgb_check_box, 4, 1)
         main_layout.addWidget(histogram_widget, 5, 0, 2, 2)
-        main_layout.addWidget(self.x_value, 7, 0)
-        main_layout.addWidget(self.y_value, 7, 1)
+        x_y_layout = QtGui.QGridLayout()
+        x_y_layout.setHorizontalSpacing(column_spacing_x_y)
+        x_y_layout.addWidget(self.x_value, 0, 0)
+        x_y_layout.addWidget(self.y_value, 0, 1)
+        main_layout.addLayout(x_y_layout, 7, 0)
         main_layout.addWidget(self.pixel_value, 8, 0, 1, 2)
-        main_layout.addWidget(self.pds_view.get_widget(), 2, 2, 9, 3)
+        main_layout.addWidget(self.pds_view.get_widget(), 2, 2, 9, 4)
 
         main_layout.setRowStretch(9, 1)
+        main_layout.setColumnStretch(5, 1)
 
         vw = QtGui.QWidget()
         self.setCentralWidget(vw)
