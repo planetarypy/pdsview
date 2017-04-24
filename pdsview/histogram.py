@@ -5,7 +5,7 @@ from matplotlib.figure import Figure
 from ginga.qtw.QtHelp import QtGui, QtCore
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg
 
-from WarningTimer import WarningTimer, WarningTimerModel
+from warningtimer import WarningTimer, WarningTimerModel
 
 
 class HistogramModel(object):
@@ -58,6 +58,8 @@ class HistogramModel(object):
         Setting the low cut value will adjust the cut values in the image view
         and notify the views that the low cut value changed
         """
+        if self._cut_low is None:
+            self._cut_low = self.view_cuts[0]
         return self._cut_low
 
     @cut_low.setter
@@ -72,6 +74,8 @@ class HistogramModel(object):
 
         Setting the high cut value will adjust the cut values in the image view
         and notify the views that the high cut value changed."""
+        if self._cut_high is None:
+            self._cut_high = self.view_cuts[1]
         return self._cut_high
 
     @cut_high.setter
