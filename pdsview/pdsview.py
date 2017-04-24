@@ -18,7 +18,7 @@ import math
 import numpy
 import warnings
 
-from Histogram import HistogramWidget, HistogramModel
+from histogram import HistogramWidget, HistogramModel
 
 STD_FORMAT = '%(asctime)s | %(levelname)1.1s | %(filename)s:%(lineno)d (%(funcName)s) | %(message)s'
 #
@@ -895,8 +895,8 @@ class PDSViewer(QtGui.QMainWindow):
         try:
             # When clicking inside the image
             image = pds_view.get_image()
-            x = round(data_x, 0)
-            y = round(data_y, 0)
+            x = int(round(data_x, 0))
+            y = int(round(data_y, 0))
             value = image.get_data_xy(x, y)
             self.x_value.setText('X: %.0f' % (x))
             self.y_value.setText('Y: %.0f' % (y))
