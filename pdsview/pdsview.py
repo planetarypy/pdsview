@@ -18,7 +18,7 @@ import math
 import numpy
 import warnings
 
-from histogram import HistogramWidget, HistogramModel
+from .histogram import HistogramWidget, HistogramModel
 
 STD_FORMAT = '%(asctime)s | %(levelname)1.1s | %(filename)s:%(lineno)d (%(funcName)s) | %(message)s'
 #

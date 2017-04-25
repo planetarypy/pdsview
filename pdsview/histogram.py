@@ -5,7 +5,7 @@ from matplotlib.figure import Figure
 from ginga.qtw.QtHelp import QtGui, QtCore
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg
 
-from warningtimer import WarningTimer, WarningTimerModel
+from .warningtimer import WarningTimer, WarningTimerModel
 
 
 class HistogramModel(object):
