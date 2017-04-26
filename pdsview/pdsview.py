@@ -779,8 +779,8 @@ class PDSViewer(QtGui.QMainWindow):
             second_box.setMaximumSize(main_box.sizeHint())
 
         self.histogram = HistogramModel(self.pds_view, bins=100)
-        histogram_widget = HistogramWidget(self.histogram)
-        min_width = histogram_widget.histogram.width()
+        self.histogram_widget = HistogramWidget(self.histogram)
+        min_width = self.histogram_widget.histogram.width()
         for widget in (open_file, self.next_image, self.previous_image,
                        self.channels_button, self.open_label,
                        self.restore_defaults, self.rgb_check_box, self.x_value,
@@ -813,7 +813,7 @@ class PDSViewer(QtGui.QMainWindow):
         main_layout.addWidget(self.open_label, 3, 1)
         main_layout.addWidget(self.restore_defaults, 4, 0)
         main_layout.addWidget(self.rgb_check_box, 4, 1)
-        main_layout.addWidget(histogram_widget, 5, 0, 2, 2)
+        main_layout.addWidget(self.histogram_widget, 5, 0, 2, 2)
         x_y_layout = QtGui.QGridLayout()
         x_y_layout.setHorizontalSpacing(column_spacing_x_y)
         x_y_layout.addWidget(self.x_value, 0, 0)
