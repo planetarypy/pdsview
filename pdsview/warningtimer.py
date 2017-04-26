@@ -132,7 +132,7 @@ class WarningTimer(QtGui.QMessageBox):
         The timer
     """
 
-    def __init__(self, model):
+    def __init__(self, model, start_timer=True):
         super(WarningTimer, self).__init__(model.parent)
         self.model = model
         self.control = WarningTimerController(self.model, self)
@@ -141,10 +141,14 @@ class WarningTimer(QtGui.QMessageBox):
         self.timer = QtCore.QTimer(self)
         self.timer.setInterval(1000)
         self.timer.timeout.connect(self.one_second_passed)
-        self.timer.start()
+        if start_timer:
+            self.start_timer()
         self.setWindowTitle(self.model.title)
         self.setStandardButtons(QtGui.QMessageBox.Ok)
         self.setIcon(QtGui.QMessageBox.Warning)
+
+    def start_timer(self):
+        self.timer.start()
 
     def one_second_passed(self):
         """After a second, subtract from the time_to_wait"""
@@ -164,4 +168,5 @@ class WarningTimer(QtGui.QMessageBox):
 
     def closeEvent(self, event):
         self.timer.stop()
+        self.accept()
         event.accept()
