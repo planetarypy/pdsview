@@ -7,6 +7,7 @@ import numpy as np
 from matplotlib.lines import Line2D
 from ginga.qtw.QtHelp import QtGui, QtCore
 import os
+from matplotlib.backend_bases import MouseEvent
 
 
 FILE_1 = os.path.join(
@@ -246,8 +247,108 @@ def test_histogram_change_bins():
     assert len(test_hist._ax.patches) == 50
 
 
-# def test_histogram_move_line(qtbot):
-#     window.show()
-#     qtbot.addWidget(window)
-#     qtbot.
+def get_xdata(ax, x):
+    xdata, _ = ax.transform((x, 10))
+    return xdata
 
+
+# def test_histogram_move_line(qtbot):
+    """Testing the move line is much more difficult than I thought
+    Passing in the correct data points is very tough and I can't
+    figure out exactly how to do so."""
+
+
+def test_histogram_widget_change_cut_low():
+    model = histogram.HistogramModel(image_view)
+    test_hist_widget = histogram.HistogramWidget(model)
+    new_cut_low = model.cut_low - 3
+    model._cut_low = new_cut_low
+    test_hist_widget.change_cut_low()
+    assert float(test_hist_widget._cut_low_box.text()) == new_cut_low
+    new_cut_low += 1.2
+    model._cut_low = new_cut_low
+    test_hist_widget.change_cut_low()
+    assert float(test_hist_widget._cut_low_box.text()) == new_cut_low
+
+
+def test_histogram_widget_change_cut_high():
+    model = histogram.HistogramModel(image_view)
+    test_hist_widget = histogram.HistogramWidget(model)
+    new_cut_high = model.cut_high + 3
+    model._cut_high = new_cut_high
+    test_hist_widget.change_cut_high()
+    assert float(test_hist_widget._cut_high_box.text()) == new_cut_high
+    new_cut_high -= 1.2
+    model._cut_high = new_cut_high
+    test_hist_widget.change_cut_high()
+    assert float(test_hist_widget._cut_high_box.text()) == new_cut_high
+
+
+def test_histogram_widget_change_cuts():
+    model = histogram.HistogramModel(image_view)
+    test_hist_widget = histogram.HistogramWidget(model)
+    new_cut_high = model.cut_high + 3
+    model._cut_high = new_cut_high
+    new_cut_low = model.cut_low - 3
+    model._cut_low = new_cut_low
+    test_hist_widget.change_cuts()
+    assert float(test_hist_widget._cut_low_box.text()) == new_cut_low
+    assert float(test_hist_widget._cut_high_box.text()) == new_cut_high
+    new_cut_high -= 1.2
+    model._cut_high = new_cut_high
+    new_cut_low += 1.2
+    model._cut_low = new_cut_low
+    test_hist_widget.change_cuts()
+    assert float(test_hist_widget._cut_low_box.text()) == new_cut_low
+    assert float(test_hist_widget._cut_high_box.text()) == new_cut_high
+
+
+def test_histogram_widget_change_bins():
+    model = histogram.HistogramModel(image_view)
+    test_hist_widget = histogram.HistogramWidget(model)
+    new_bins = model.bins + 20
+    model._bins = new_bins
+    test_hist_widget.change_bins()
+    assert int(test_hist_widget._bins_box.text()) == new_bins
+
+
+def test_histogram_widget_keyPressEvent(qtbot):
+    window.show()
+    qtbot.addWidget(window.histogram_widget)
+    qtbot.addWidget(window)
+    # Change only cut low
+    new_cut_low = window.histogram.cut_low - 3
+    window.histogram_widget._cut_low_box.setText("%.3f" % (new_cut_low))
+    qtbot.keyPress(window.histogram_widget, QtCore.Qt.Key_Return)
+    assert window.histogram.cut_low == new_cut_low
+    # Change only cut high
+    new_cut_high = window.histogram.cut_high + 3
+    window.histogram_widget._cut_high_box.setText("%.3f" % (new_cut_high))
+    qtbot.keyPress(window.histogram_widget, QtCore.Qt.Key_Return)
+    assert window.histogram.cut_high == new_cut_high
+    # Change both cuts
+    new_cut_low += 1.5
+    new_cut_high -= 1.5
+    window.histogram_widget._cut_low_box.setText("%.3f" % (new_cut_low))
+    window.histogram_widget._cut_high_box.setText("%.3f" % (new_cut_high))
+    qtbot.keyPress(window.histogram_widget, QtCore.Qt.Key_Return)
+    assert window.histogram.cut_low == new_cut_low
+    assert window.histogram.cut_high == new_cut_high
+    # Change the bins
+    new_bins = window.histogram.bins + 50
+    window.histogram_widget._bins_box.setText("%d" % (new_bins))
+    qtbot.keyPress(window.histogram_widget, QtCore.Qt.Key_Return)
+    assert window.histogram.bins == new_bins
+    assert window.histogram.cut_low == new_cut_low
+    assert window.histogram.cut_high == new_cut_high
+    # Change all
+    new_cut_low += 1.5
+    new_cut_high -= 1.5
+    window.histogram_widget._cut_low_box.setText("%.3f" % (new_cut_low))
+    window.histogram_widget._cut_high_box.setText("%.3f" % (new_cut_high))
+    new_bins -= 25
+    window.histogram_widget._bins_box.setText("%d" % (new_bins))
+    qtbot.keyPress(window.histogram_widget, QtCore.Qt.Key_Return)
+    assert window.histogram.bins == new_bins
+    assert window.histogram.cut_low == new_cut_low
+    assert window.histogram.cut_high == new_cut_high
