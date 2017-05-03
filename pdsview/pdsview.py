@@ -16,6 +16,9 @@ from planetaryimage import PDS3Image
 import argparse
 import math
 import numpy
+import warnings
+
+from .histogram import HistogramWidget, HistogramModel
 
 STD_FORMAT = '%(asctime)s | %(levelname)1.1s | %(filename)s:%(lineno)d (%(funcName)s) | %(message)s'
 #
@@ -56,6 +59,7 @@ class ImageStamp(BaseImage):
     not_been_displayed : bool
         Whether the image has been displayed already
     """
+
     def __init__(self, filepath, name, pds_image, data_np, metadata=None,
                  logger=None):
         BaseImage.__init__(self, data_np=data_np, metadata=metadata,
@@ -394,6 +398,7 @@ class ImageSet(object):
     next_prev_enabled : bool
         Whether the next and previous buttons should be enabled
     """
+
     def __init__(self, filepaths):
         # Remove any duplicate filepaths and sort the list alpha-numerically.
         filepaths = sorted(list(set(filepaths)))
@@ -421,7 +426,7 @@ class ImageSet(object):
                 if bands == 3:
                     for n in range(bands):
                         name = os.path.basename(filepath) + '(%s)' % (rgb[n])
-                        data = pds_image.data[:, :, n]
+                        data = pds_image.image[:, :, n]
                         image = ImageStamp(
                             filepath=filepath, name=name, data_np=data,
                             pds_image=pds_image)
@@ -430,14 +435,14 @@ class ImageSet(object):
                     self.images.append(channels)
                 else:
                     name = os.path.basename(filepath)
-                    data = pds_image.data
+                    data = pds_image.image
                     image = ImageStamp(
                         filepath=filepath, name=name, data_np=data,
                         pds_image=pds_image)
                     self.images.append([image])
                     self.file_dict[image.image_name] = image
             except:
-                pass
+                warnings.warn(filepath + " cannnot be opened")
 
     def enable_next_previous(self):
         """Set whether the next and previous buttons are enabled."""
@@ -512,9 +517,12 @@ class ImageSet(object):
 
         """
 
+        left = int(math.ceil(left))
+        bottom = int(math.ceil(bottom))
+        right = int(math.ceil(right))
+        top = int(math.ceil(top))
         data = self.current_image[self.channel].cutout_data(
-            math.ceil(left), math.ceil(bottom), math.ceil(right),
-            math.ceil(top))
+            left, bottom, right, top)
         return data
 
     def ROI_pixels(self, left, bottom, right, top):
@@ -705,16 +713,7 @@ class PDSViewer(QtGui.QMainWindow):
         self.pds_view.enable_draw(True)
         self.pds_view.set_drawtype('rectangle')
 
-        pdsview_widget = self.pds_view.get_widget()
-        pdsview_widget.resize(768, 768)
-
-        vertical_align = QtGui.QVBoxLayout()
-        vertical_align.setContentsMargins(QtCore.QMargins(2, 2, 2, 2))
-        vertical_align.setSpacing(1)
-        vertical_align.addWidget(pdsview_widget, stretch=1)
-
-        horizontal_align = QtGui.QHBoxLayout()
-        horizontal_align.setContentsMargins(QtCore.QMargins(4, 2, 4, 2))
+        main_layout = QtGui.QGridLayout()
 
         # self.open_label is need as an attribute to determine whether the user
         # should be able to open the label window. The other side of this
@@ -750,13 +749,6 @@ class PDSViewer(QtGui.QMainWindow):
         self.y_value = QtGui.QLabel('Y: #####')
         self.pixel_value = QtGui.QLabel('R: ######, G: ###### B: ######')
 
-        horizontal_align.addStretch(1)
-        for button in (
-                self.x_value, self.y_value, self.pixel_value,
-                self.previous_image, self.next_image, open_file,
-                self.open_label, quit_button):
-            horizontal_align.addWidget(button, stretch=0)
-        # Region of Interest boxes
         self.pixels = QtGui.QLabel('#Pixels: #######')
         self.std_dev = QtGui.QLabel(
             'Std Dev: R: ######### G: ######### B: #########')
@@ -766,6 +758,8 @@ class PDSViewer(QtGui.QMainWindow):
             'Median: R: ######## G: ######## B: ########')
         self.min = QtGui.QLabel('Min: R: ### G: ### B: ###')
         self.max = QtGui.QLabel('Max: R: ### G: ### B: ###')
+
+        main_layout.setHorizontalSpacing(10)
         # Set format for each information box to be the same
         for info_box in (self.x_value, self.y_value, self.pixel_value,
                          self.pixels, self.std_dev, self.mean, self.median,
@@ -775,45 +769,72 @@ class PDSViewer(QtGui.QMainWindow):
             info_box.setLineWidth(3)
             info_box.setMidLineWidth(1)
             info_box.setAlignment(QtCore.Qt.AlignBottom | QtCore.Qt.AlignLeft)
-            info_box.setMinimumSize(info_box.sizeHint())
-            info_box.setMaximumSize(info_box.sizeHint())
 
-        horizontal_align_2 = QtGui.QHBoxLayout()
-        horizontal_align_2.setContentsMargins(QtCore.QMargins(4, 2, 4, 2))
-        for roi in (self.pixels, self.std_dev, self.mean):
-            horizontal_align_2.addWidget(roi)
-        horizontal_align_3 = QtGui.QHBoxLayout()
-        horizontal_align_3.setContentsMargins(QtCore.QMargins(4, 2, 4, 2))
-        for roi in (self.median, self.min, self.max, self.rgb_check_box):
-            horizontal_align_3.addWidget(roi)
-        horizontal_align_4 = QtGui.QHBoxLayout()
-        horizontal_align_4.setContentsMargins(QtCore.QMargins(4, 2, 4, 2))
-        for channel in (self.restore_defaults, self.previous_channel,
-                        self.next_channel, self.channels_button):
-            horizontal_align_4.addWidget(channel)
+        for main_box, second_box in ((self.std_dev, self.pixels),
+                                     (self.mean, self.median),
+                                     (self.min, self.max)):
+            main_box.setMinimumSize(main_box.sizeHint())
+            main_box.setMaximumSize(main_box.sizeHint())
+            second_box.setMinimumSize(main_box.sizeHint())
+            second_box.setMaximumSize(main_box.sizeHint())
 
-        hw = QtGui.QWidget()
-        hw.setLayout(horizontal_align)
-        hw_2 = QtGui.QWidget()
-        hw_2.setLayout(horizontal_align_2)
-        hw_3 = QtGui.QWidget()
-        hw_3.setLayout(horizontal_align_3)
-        hw_4 = QtGui.QWidget()
-        hw_4.setLayout(horizontal_align_4)
-        vertical_align.addWidget(hw, stretch=0)
-        vertical_align.addWidget(hw_2, stretch=0)
-        vertical_align.addWidget(hw_3, stretch=0)
-        vertical_align.addWidget(hw_4, stretch=0)
-        self.vertical_align = vertical_align
-        self.horizontal_align = horizontal_align
-        self.pdsview_widget = pdsview_widget
+        self.histogram = HistogramModel(self.pds_view, bins=100)
+        self.histogram_widget = HistogramWidget(self.histogram)
+        min_width = self.histogram_widget.histogram.width()
+        for widget in (open_file, self.next_image, self.previous_image,
+                       self.channels_button, self.open_label,
+                       self.restore_defaults, self.rgb_check_box, self.x_value,
+                       self.y_value, quit_button, self.next_channel,
+                       self.previous_channel, self.pixel_value):
+            widget.setMinimumWidth(min_width)
+            widget.setMaximumWidth(min_width)
+        fixed_size = self.pixel_value.sizeHint().width()
+        self.x_value.setMinimumWidth(fixed_size / 2)
+        self.x_value.setMaximumWidth(fixed_size / 2)
+        self.y_value.setMinimumWidth(fixed_size / 2)
+        self.y_value.setMaximumWidth(fixed_size / 2)
+        column_spacing_x_y = 5
+        self.pixel_value.setMinimumWidth(fixed_size + column_spacing_x_y)
+        self.pixel_value.setMaximumWidth(fixed_size + column_spacing_x_y)
+
+        main_layout.addWidget(open_file, 0, 0)
+        main_layout.addWidget(quit_button, 0, 1)
+        main_layout.addWidget(self.pixels, 0, 2)
+        main_layout.addWidget(self.mean, 0, 3)
+        main_layout.addWidget(self.min, 0, 4)
+        main_layout.addWidget(self.previous_image, 1, 0)
+        main_layout.addWidget(self.next_image, 1, 1)
+        main_layout.addWidget(self.std_dev, 1, 2)
+        main_layout.addWidget(self.median, 1, 3)
+        main_layout.addWidget(self.max, 1, 4)
+        main_layout.addWidget(self.previous_channel, 2, 0)
+        main_layout.addWidget(self.next_channel, 2, 1)
+        main_layout.addWidget(self.channels_button, 3, 0)
+        main_layout.addWidget(self.open_label, 3, 1)
+        main_layout.addWidget(self.restore_defaults, 4, 0)
+        main_layout.addWidget(self.rgb_check_box, 4, 1)
+        main_layout.addWidget(self.histogram_widget, 5, 0, 2, 2)
+        x_y_layout = QtGui.QGridLayout()
+        x_y_layout.setHorizontalSpacing(column_spacing_x_y)
+        x_y_layout.addWidget(self.x_value, 0, 0)
+        x_y_layout.addWidget(self.y_value, 0, 1)
+        main_layout.addLayout(x_y_layout, 7, 0)
+        main_layout.addWidget(self.pixel_value, 8, 0, 1, 2)
+        main_layout.addWidget(self.pds_view.get_widget(), 2, 2, 9, 4)
+
+        main_layout.setRowStretch(9, 1)
+        main_layout.setColumnStretch(5, 1)
 
         vw = QtGui.QWidget()
         self.setCentralWidget(vw)
-        vw.setLayout(vertical_align)
+        vw.setLayout(main_layout)
 
         if self.image_set.current_image:
             self.display_image()
+
+        self.adjustSize()
+        width = self.size().width()
+        self.resize(width, width)
 
     def switch_rgb(self, state):
         """Display rgb image when rgb box is checked, single band otherwise"""
@@ -831,6 +852,7 @@ class PDSViewer(QtGui.QMainWindow):
                     names = [band.image_name for band in self.rgb]
                     composite = CompositeImage(composite_layers, names)
                     rgb_data = composite.get_data()
+                    # rgb_data = numpy.dstack(datas)
                     current_image[index].set_data(rgb_data)
                     self.next_channel.setEnabled(False)
                     self.previous_channel.setEnabled(False)
@@ -873,8 +895,8 @@ class PDSViewer(QtGui.QMainWindow):
         try:
             # When clicking inside the image
             image = pds_view.get_image()
-            x = round(data_x, 0)
-            y = round(data_y, 0)
+            x = int(round(data_x, 0))
+            y = int(round(data_y, 0))
             value = image.get_data_xy(x, y)
             self.x_value.setText('X: %.0f' % (x))
             self.y_value.setText('Y: %.0f' % (y))
@@ -920,7 +942,7 @@ class PDSViewer(QtGui.QMainWindow):
             self.image_set.append(new_files, first_new_image)
             # If there are no new images, don't continue
             if first_new_image == len(self.image_set.images):
-                print ("The image(s) chosen are not PDS compatible")
+                warnings.warn("The image(s) chosen are not PDS compatible")
                 return
             self.next_image.setEnabled(self.image_set.next_prev_enabled)
             self.previous_image.setEnabled(self.image_set.next_prev_enabled)
@@ -990,11 +1012,13 @@ class PDSViewer(QtGui.QMainWindow):
             self.restore()
             self.pds_view.delayed_redraw()
             current_image.not_been_displayed = False
+            self.histogram.set_data()
         else:
             # Set the current image with the images last parameters
             self.pds_view.set_image(current_image)
             self.apply_parameters(current_image, self.pds_view)
             self.pds_view.delayed_redraw()
+            self.histogram.set_data()
 
         # Update the value box when the channel changes
         if next_channel or previous_channel:
@@ -1086,6 +1110,7 @@ class PDSViewer(QtGui.QMainWindow):
         # transform bools will change in the future
         self.pds_view.transform(False, False, False)
         self.pds_view.zoom_fit()
+        self.histogram.restore()
 
     def start_ROI(self, pds_view, button, data_x, data_y):
         """Ensure only one Region of Interest (ROI) exists at a time

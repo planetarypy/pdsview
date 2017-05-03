@@ -10,7 +10,7 @@ FILE_2 = os.path.join(
 FILE_3 = os.path.join(
     'tests', 'mission_data', '1p190678905erp64kcp2600l8c1.img')
 FILE_4 = os.path.join(
-    'tests', 'mission_data', 'r01090al.img')
+    'tests', 'mission_data', 'h58n3118.img')
 FILE_5 = os.path.join(
     'tests', 'mission_data', '1p134482118erp0902p2600r8m1.img')
 FILE_6 = os.path.join(
@@ -19,7 +19,7 @@ test_files = [FILE_1, FILE_2, FILE_3, FILE_4, FILE_5, FILE_6]
 FILE_1_NAME = '2m132591087cfd1800p2977m2f1.img'
 FILE_2_NAME = '2p129641989eth0361p2600r8m1.img'
 FILE_3_NAME = '1p190678905erp64kcp2600l8c1.img'
-FILE_4_NAME = 'r01090al.img'
+FILE_4_NAME = 'h58n3118.img'
 FILE_5_NAME = '1p134482118erp0902p2600r8m1.img'
 FILE_6_NAME = '0047MH0000110010100214C00_DRCL.IMG'
 
@@ -34,6 +34,7 @@ def test_channels_dialog(qtbot):
     qtbot.addWidget(dialog)
     assert dialog.main_window == window
     assert dialog.current_image == window.image_set.current_image[0]
+    print(dialog.image_names)
     assert dialog.image_names == [FILE_5_NAME, FILE_3_NAME, FILE_1_NAME,
                                   FILE_2_NAME, FILE_4_NAME]
     assert isinstance(dialog.image_list, QtGui.QTreeWidget)

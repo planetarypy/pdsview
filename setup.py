@@ -20,7 +20,7 @@ requirements = [
 
 setup(
     name='pdsview',
-    version='0.4.1',
+    version='0.4.2',
     description="PDS Image Viewer",
     long_description=readme + '\n\n' + history,
     author="PlanetaryPy Developers",
@@ -33,10 +33,11 @@ setup(
                  'pdsview'},
     include_package_data=True,
     install_requires=[
-        'ginga>=2.5',
-        'planetaryimage>=0.1.0',
-        'PySide>=1.2.0',
-        'astropy>=1.0.2'
+        'ginga==2.6.0',
+        'planetaryimage==0.5.0',
+        'PySide==1.2.1',
+        'astropy==1.2.1',
+        'matplotlib==1.5.1'
     ],
     license="BSD",
     zip_safe=False,
