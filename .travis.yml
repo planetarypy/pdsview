@@ -36,6 +36,7 @@ install:
       conda install pyqt=5;
     fi
   - get_mission_data
+  - conda list
 
 # command to run tests, e.g. python setup.py test
 script:
