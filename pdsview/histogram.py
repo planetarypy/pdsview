@@ -3,9 +3,14 @@ import warnings
 import numpy as np
 from matplotlib.figure import Figure
 from qtpy import QtWidgets, QtCore
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+from qtpy import QT_VERSION
 
 from .warningtimer import WarningTimer, WarningTimerModel
+qt_ver = int(QT_VERSION[0])
+if qt_ver == 4:
+    from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg
+elif qt_ver == 5:
+    from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 
 
 class HistogramModel(object):
