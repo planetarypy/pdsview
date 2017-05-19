@@ -132,7 +132,7 @@ class ChannelsDialog(QtWidgets.QDialog):
         self.image_list.setHeaderLabel('Channels')
         self.items = []
         for image_name in image_names:
-            self.items.append(QtWidgets.QTreeWidgetItem(None, image_name))
+            self.items.append(QtWidgets.QTreeWidgetItem(self.image_list))
         for index in range(len(self.items)):
             self.items[index].setText(0, image_names[index])
         self.image_list.insertTopLevelItems(1, self.items)
@@ -141,7 +141,7 @@ class ChannelsDialog(QtWidgets.QDialog):
         # highlight the current image
         self.current_index = image_names.index(current_image.image_name)
         current_item = self.items[self.current_index]
-        self.image_list.setItemSelected(current_item, True)
+        current_item.setSelected(True)
         self.image_list.setIndentation(0)
         self.image_list.setFixedWidth(400)
 
@@ -354,8 +354,8 @@ class ChannelsDialog(QtWidgets.QDialog):
         self.current_image = current_image
         self.current_index = self.image_names.index(current_image.image_name)
         current_item = self.items[self.current_index]
-        self.image_list.setItemSelected(current_item, True)
-        self.image_list.setItemSelected(last_item, False)
+        current_item.setSelected(True)
+        last_item.setSelected(False)
         self.update_menus_current_item()
         self.create_composite_image()
 
@@ -364,8 +364,8 @@ class ChannelsDialog(QtWidgets.QDialog):
         channel = self.main_window.image_set.channel
         last_item = self.items[self.current_index + previous_channel]
         current_item = self.items[self.current_index + channel]
-        self.image_list.setItemSelected(current_item, True)
-        self.image_list.setItemSelected(last_item, False)
+        current_item.setSelected(True)
+        last_item.setSelected(True)
 
     def close_dialog(self):
         """Close the dialog and save the position"""
