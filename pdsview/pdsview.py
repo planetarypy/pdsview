@@ -8,7 +8,7 @@ try:
 except:
     from pdsview import label
 from glob import glob
-from ginga.qtw.QtHelp import QtGui, QtCore
+from qtpy import QtWidgets, QtCore
 from ginga.qtw.ImageViewCanvasQt import ImageViewCanvas
 from ginga.BaseImage import BaseImage
 from ginga.LayerImage import LayerImage
@@ -23,9 +23,9 @@ from .histogram import HistogramWidget, HistogramModel
 STD_FORMAT = '%(asctime)s | %(levelname)1.1s | %(filename)s:%(lineno)d (%(funcName)s) | %(message)s'
 #
 #
-app = QtGui.QApplication.instance()
+app = QtWidgets.QApplication.instance()
 if not app:
-    app = QtGui.QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
 
 
 class ImageStamp(BaseImage):
@@ -114,7 +114,7 @@ class CompositeImage(BaseImage, LayerImage):
         self.rgb_compose()
 
 
-class ChannelsDialog(QtGui.QDialog):
+class ChannelsDialog(QtWidgets.QDialog):
     """A Dialog box to adjust the channels and alpha values"""
     def __init__(self, current_image, main_window):
         super(ChannelsDialog, self).__init__()
@@ -127,17 +127,17 @@ class ChannelsDialog(QtGui.QDialog):
         rgb_names = [band.image_name for band in main_window.rgb]
 
         # Create display of image names and highlight the current image/channel
-        self.image_list = QtGui.QTreeWidget()
+        self.image_list = QtWidgets.QTreeWidget()
         self.image_list.setColumnCount(1)
         self.image_list.setHeaderLabel('Channels')
         self.items = []
         for image_name in image_names:
-            self.items.append(QtGui.QTreeWidgetItem(None, image_name))
+            self.items.append(QtWidgets.QTreeWidgetItem(None, image_name))
         for index in range(len(self.items)):
             self.items[index].setText(0, image_names[index])
         self.image_list.insertTopLevelItems(1, self.items)
         # Do not allow selection of images from list
-        self.image_list.setSelectionMode(QtGui.QAbstractItemView.NoSelection)
+        self.image_list.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
         # highlight the current image
         self.current_index = image_names.index(current_image.image_name)
         current_item = self.items[self.current_index]
@@ -147,24 +147,24 @@ class ChannelsDialog(QtGui.QDialog):
 
         # Create rgb check-box to toggle display of color or single band image
         # This rgb check box connects with the rgb check box in the main window
-        self.rgb_check_box = QtGui.QCheckBox("RGB")
+        self.rgb_check_box = QtWidgets.QCheckBox("RGB")
         self.rgb_check_box.stateChanged.connect(self.check_rgb)
 
         # Create Red Menu
         # Create the red menu drop down box
-        self.red_menu = QtGui.QComboBox()
-        red_label = QtGui.QLabel("Red")
-        red_box = QtGui.QHBoxLayout()
+        self.red_menu = QtWidgets.QComboBox()
+        red_label = QtWidgets.QLabel("Red")
+        red_box = QtWidgets.QHBoxLayout()
         R_index = image_names.index(rgb_names[0])
         self.add_text_to_menu(self.red_menu, image_names, R_index)
         self.create_color_layout(red_label, self.red_menu, red_box)
         # Create red alpha slider
-        self.red_alpha_slider = QtGui.QSlider(QtCore.Qt.Horizontal)
-        red_alpha_value = QtGui.QLabel()
-        red_alpha_value_container = QtGui.QHBoxLayout()
-        red_alpha_label = QtGui.QLabel('Red %')
-        red_alpha_slider_container = QtGui.QHBoxLayout()
-        red_alpha_container = QtGui.QVBoxLayout()
+        self.red_alpha_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        red_alpha_value = QtWidgets.QLabel()
+        red_alpha_value_container = QtWidgets.QHBoxLayout()
+        red_alpha_label = QtWidgets.QLabel('Red %')
+        red_alpha_slider_container = QtWidgets.QHBoxLayout()
+        red_alpha_container = QtWidgets.QVBoxLayout()
         self.create_slider_layout(
             self.red_alpha_slider, red_alpha_value, red_alpha_label,
             red_alpha_slider_container, red_alpha_value_container,
@@ -172,19 +172,19 @@ class ChannelsDialog(QtGui.QDialog):
 
         # Create Green Menu
         # Create the green menu drop down box
-        self.green_menu = QtGui.QComboBox()
-        green_label = QtGui.QLabel("Green")
-        green_box = QtGui.QHBoxLayout()
+        self.green_menu = QtWidgets.QComboBox()
+        green_label = QtWidgets.QLabel("Green")
+        green_box = QtWidgets.QHBoxLayout()
         G_index = image_names.index(rgb_names[1])
         self.add_text_to_menu(self.green_menu, image_names, G_index)
         self.create_color_layout(green_label, self.green_menu, green_box)
         # Create green alpha slider
-        self.green_alpha_slider = QtGui.QSlider(QtCore.Qt.Horizontal)
-        green_alpha_value = QtGui.QLabel()
-        green_alpha_value_container = QtGui.QHBoxLayout()
-        green_alpha_label = QtGui.QLabel('Green %')
-        green_alpha_slider_container = QtGui.QHBoxLayout()
-        green_alpha_container = QtGui.QVBoxLayout()
+        self.green_alpha_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        green_alpha_value = QtWidgets.QLabel()
+        green_alpha_value_container = QtWidgets.QHBoxLayout()
+        green_alpha_label = QtWidgets.QLabel('Green %')
+        green_alpha_slider_container = QtWidgets.QHBoxLayout()
+        green_alpha_container = QtWidgets.QVBoxLayout()
         self.create_slider_layout(
             self.green_alpha_slider, green_alpha_value, green_alpha_label,
             green_alpha_slider_container, green_alpha_value_container,
@@ -192,26 +192,26 @@ class ChannelsDialog(QtGui.QDialog):
 
         # Create Blue Menu
         # Create the blue menu drop down box
-        self.blue_menu = QtGui.QComboBox()
-        blue_label = QtGui.QLabel("Blue")
-        blue_box = QtGui.QHBoxLayout()
+        self.blue_menu = QtWidgets.QComboBox()
+        blue_label = QtWidgets.QLabel("Blue")
+        blue_box = QtWidgets.QHBoxLayout()
         B_index = image_names.index(rgb_names[2])
         self.add_text_to_menu(self.blue_menu, image_names, B_index)
         self.create_color_layout(blue_label, self.blue_menu, blue_box)
         # Create blue alpha slider
-        self.blue_alpha_slider = QtGui.QSlider(QtCore.Qt.Horizontal)
-        blue_alpha_value = QtGui.QLabel()
-        blue_alpha_value_container = QtGui.QHBoxLayout()
-        blue_alpha_label = QtGui.QLabel('Blue %')
-        blue_alpha_slider_container = QtGui.QHBoxLayout()
-        blue_alpha_container = QtGui.QVBoxLayout()
+        self.blue_alpha_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        blue_alpha_value = QtWidgets.QLabel()
+        blue_alpha_value_container = QtWidgets.QHBoxLayout()
+        blue_alpha_label = QtWidgets.QLabel('Blue %')
+        blue_alpha_slider_container = QtWidgets.QHBoxLayout()
+        blue_alpha_container = QtWidgets.QVBoxLayout()
         self.create_slider_layout(
             self.blue_alpha_slider, blue_alpha_value, blue_alpha_label,
             blue_alpha_slider_container, blue_alpha_value_container,
             blue_alpha_container)
 
         # Create a close button
-        self.close_button = QtGui.QPushButton('Close')
+        self.close_button = QtWidgets.QPushButton('Close')
         self.close_button.clicked.connect(self.close_dialog)
 
         containers = [self.image_list, self.rgb_check_box, red_box,
@@ -220,7 +220,7 @@ class ChannelsDialog(QtGui.QDialog):
                       self.close_button]
 
         # Set items created above in a grid layout
-        self.layout = QtGui.QGridLayout()
+        self.layout = QtWidgets.QGridLayout()
         row = 0
         for container in containers:
             try:
@@ -671,7 +671,7 @@ class ImageSet(object):
         return maximum
 
 
-class PDSViewer(QtGui.QMainWindow):
+class PDSViewer(QtWidgets.QMainWindow):
     """A display of a single image with the option to view other images
 
     Parameters
@@ -713,59 +713,59 @@ class PDSViewer(QtGui.QMainWindow):
         self.pds_view.enable_draw(True)
         self.pds_view.set_drawtype('rectangle')
 
-        main_layout = QtGui.QGridLayout()
+        main_layout = QtWidgets.QGridLayout()
 
         # self.open_label is need as an attribute to determine whether the user
         # should be able to open the label window. The other side of this
         # toggle is found in load_file().
-        open_file = QtGui.QPushButton("Open File")
+        open_file = QtWidgets.QPushButton("Open File")
         open_file.clicked.connect(self.open_file)
-        self.next_image = QtGui.QPushButton("Next")
+        self.next_image = QtWidgets.QPushButton("Next")
         self.next_image.clicked.connect(
             lambda: self.display_image(next_image=True))
         self.next_image.setEnabled(image_set.next_prev_enabled)
-        self.previous_image = QtGui.QPushButton("Previous")
+        self.previous_image = QtWidgets.QPushButton("Previous")
         self.previous_image.clicked.connect(
             lambda: self.display_image(previous_image=True))
         self.previous_image.setEnabled(image_set.next_prev_enabled)
-        self.open_label = QtGui.QPushButton("Label")
+        self.open_label = QtWidgets.QPushButton("Label")
         self.open_label.clicked.connect(self.display_label)
-        quit_button = QtGui.QPushButton("Quit")
+        quit_button = QtWidgets.QPushButton("Quit")
         quit_button.clicked.connect(self.quit)
-        self.rgb_check_box = QtGui.QCheckBox("RGB")
+        self.rgb_check_box = QtWidgets.QCheckBox("RGB")
         self.rgb_check_box.stateChanged.connect(self.switch_rgb)
-        self.next_channel = QtGui.QPushButton('CH +')
+        self.next_channel = QtWidgets.QPushButton('CH +')
         self.next_channel.clicked.connect(
             lambda: self.display_image(next_channel=True))
-        self.previous_channel = QtGui.QPushButton('CH -')
+        self.previous_channel = QtWidgets.QPushButton('CH -')
         self.previous_channel.clicked.connect(
             lambda: self.display_image(previous_channel=True))
-        self.restore_defaults = QtGui.QPushButton("Restore Defaults")
+        self.restore_defaults = QtWidgets.QPushButton("Restore Defaults")
         self.restore_defaults.clicked.connect(self.restore)
-        self.channels_button = QtGui.QPushButton("Channels")
+        self.channels_button = QtWidgets.QPushButton("Channels")
         self.channels_button.clicked.connect(self.channels_dialog)
         # Set Text so the size of the boxes are at an appropriate size
-        self.x_value = QtGui.QLabel('X: #####')
-        self.y_value = QtGui.QLabel('Y: #####')
-        self.pixel_value = QtGui.QLabel('R: ######, G: ###### B: ######')
+        self.x_value = QtWidgets.QLabel('X: #####')
+        self.y_value = QtWidgets.QLabel('Y: #####')
+        self.pixel_value = QtWidgets.QLabel('R: ######, G: ###### B: ######')
 
-        self.pixels = QtGui.QLabel('#Pixels: #######')
-        self.std_dev = QtGui.QLabel(
+        self.pixels = QtWidgets.QLabel('#Pixels: #######')
+        self.std_dev = QtWidgets.QLabel(
             'Std Dev: R: ######### G: ######### B: #########')
-        self.mean = QtGui.QLabel(
+        self.mean = QtWidgets.QLabel(
             'Mean: R: ######## G: ######## B: ########')
-        self.median = QtGui.QLabel(
+        self.median = QtWidgets.QLabel(
             'Median: R: ######## G: ######## B: ########')
-        self.min = QtGui.QLabel('Min: R: ### G: ### B: ###')
-        self.max = QtGui.QLabel('Max: R: ### G: ### B: ###')
+        self.min = QtWidgets.QLabel('Min: R: ### G: ### B: ###')
+        self.max = QtWidgets.QLabel('Max: R: ### G: ### B: ###')
 
         main_layout.setHorizontalSpacing(10)
         # Set format for each information box to be the same
         for info_box in (self.x_value, self.y_value, self.pixel_value,
                          self.pixels, self.std_dev, self.mean, self.median,
                          self.min, self.max):
-            info_box.setFrameShape(QtGui.QFrame.Panel)
-            info_box.setFrameShadow(QtGui.QFrame.Sunken)
+            info_box.setFrameShape(QtWidgets.QFrame.Panel)
+            info_box.setFrameShadow(QtWidgets.QFrame.Sunken)
             info_box.setLineWidth(3)
             info_box.setMidLineWidth(1)
             info_box.setAlignment(QtCore.Qt.AlignBottom | QtCore.Qt.AlignLeft)
@@ -814,7 +814,7 @@ class PDSViewer(QtGui.QMainWindow):
         main_layout.addWidget(self.restore_defaults, 4, 0)
         main_layout.addWidget(self.rgb_check_box, 4, 1)
         main_layout.addWidget(self.histogram_widget, 5, 0, 2, 2)
-        x_y_layout = QtGui.QGridLayout()
+        x_y_layout = QtWidgets.QGridLayout()
         x_y_layout.setHorizontalSpacing(column_spacing_x_y)
         x_y_layout.addWidget(self.x_value, 0, 0)
         x_y_layout.addWidget(self.y_value, 0, 1)
@@ -825,7 +825,7 @@ class PDSViewer(QtGui.QMainWindow):
         main_layout.setRowStretch(9, 1)
         main_layout.setColumnStretch(5, 1)
 
-        vw = QtGui.QWidget()
+        vw = QtWidgets.QWidget()
         self.setCentralWidget(vw)
         vw.setLayout(main_layout)
 
@@ -932,8 +932,8 @@ class PDSViewer(QtGui.QMainWindow):
 
     def open_file(self):
         """Open a new image file from a file explorer"""
-        file_name = QtGui.QFileDialog()
-        file_name.setFileMode(QtGui.QFileDialog.ExistingFiles)
+        file_name = QtWidgets.QFileDialog()
+        file_name.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
         new_files = file_name.getOpenFileNames(self)[0]
         if new_files:
             if self.image_set.current_image:

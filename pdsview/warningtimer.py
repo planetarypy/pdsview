@@ -1,4 +1,4 @@
-from ginga.qtw.QtHelp import QtGui, QtCore
+from qtpy import QtWidgets, QtCore
 
 
 class WarningTimerModel(object):
@@ -101,7 +101,7 @@ class WarningTimerController(object):
     ----------
     model : :class:`WarningTimerModel`
         The Warning Timer Model
-    view : :class:`QtGui.QMessageBox`
+    view : :class:`QtWidgets.QMessageBox`
         A message box with a :class:`WarningTimerModel` model
     """
 
@@ -114,7 +114,7 @@ class WarningTimerController(object):
         self._model.time_to_wait -= 1
 
 
-class WarningTimer(QtGui.QMessageBox):
+class WarningTimer(QtWidgets.QMessageBox):
     """A Warning Message Box that closes after some time
 
     Parameters
@@ -144,8 +144,8 @@ class WarningTimer(QtGui.QMessageBox):
         if start_timer:
             self.start_timer()
         self.setWindowTitle(self.model.title)
-        self.setStandardButtons(QtGui.QMessageBox.Ok)
-        self.setIcon(QtGui.QMessageBox.Warning)
+        self.setStandardButtons(QtWidgets.QMessageBox.Ok)
+        self.setIcon(QtWidgets.QMessageBox.Warning)
 
     def start_timer(self):
         self.timer.start()
