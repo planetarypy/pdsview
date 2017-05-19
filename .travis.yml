@@ -33,7 +33,7 @@ install:
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
       conda install pyqt=4;
     else
-      conda install pyqt=5;
+      pip install pyqt5;
     fi
   - get_mission_data
   - conda list
