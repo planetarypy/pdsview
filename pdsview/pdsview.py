@@ -4,8 +4,8 @@ import sys
 import os
 import logging
 try:
-    import label
-except:
+    from . import label
+except ImportError:
     from pdsview import label
 from glob import glob
 from qtpy import QtWidgets, QtCore
