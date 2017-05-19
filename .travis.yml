@@ -31,7 +31,7 @@ install:
   - source activate test-environment
   - pip install -r requirements.txt
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-      conda install -c anaconda pyqt=4;
+      conda install -c anaconda pyside=1.2.1;
     else
       pip install pyqt5;
     fi
