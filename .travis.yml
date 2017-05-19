@@ -26,9 +26,14 @@ install:
   - conda info -a
 
   # Replace dep1 dep2 ... with your dependencies
-  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION pyside astropy numpy
+  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
   - source activate test-environment
   - pip install -r requirements.txt
+  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
+      conda install pyqt=4
+    else
+      conda install pyqt=5
+    fi
   - get_mission_data
 
 # command to run tests, e.g. python setup.py test
