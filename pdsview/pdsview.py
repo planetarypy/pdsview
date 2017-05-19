@@ -12,7 +12,6 @@ from qtpy import QtWidgets, QtCore
 from ginga.qtw.ImageViewCanvasQt import ImageViewCanvas
 from ginga.BaseImage import BaseImage
 from ginga.LayerImage import LayerImage
-from ginga.ImageView import ImageViewError
 from planetaryimage import PDS3Image
 import argparse
 import math
