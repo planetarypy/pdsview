@@ -7,7 +7,7 @@ label being displayed is always the label for the current product being
 displayed.
 """
 
-from qtpy import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore, QtGui
 try:
     import textfinder
 except:
@@ -41,7 +41,7 @@ class LabelView(QtWidgets.QDialog):
         # Setting up the area where the label will be displayed.
         self.label_contents = QtWidgets.QTextEdit()
         self.label_contents.setReadOnly(True)
-        self.font = QtWidgets.QFont("Courier")
+        self.font = QtGui.QFont("Courier")
         self.font.setPointSize(12)
         self.label_contents.setFont(self.font)
 
@@ -56,8 +56,8 @@ class LabelView(QtWidgets.QDialog):
 
         # Adding the text and button widgets to the layout boxes.
         self.text_layout.addWidget(self.label_contents, stretch=0)
-        self.button_layout.addWidget(self.find_button, 0, 0)
-        self.button_layout.addWidget(self.cancel_button, 0, 1)
+        self.button_layout.addWidget(self.find_button)
+        self.button_layout.addWidget(self.cancel_button)
 
         # Adding all of the layout boxes to the overall layout.
         self.layout.addLayout(self.text_layout, 0, 0)
