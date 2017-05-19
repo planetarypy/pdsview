@@ -12,6 +12,7 @@ from qtpy import QtWidgets, QtCore
 from ginga.qtw.ImageViewCanvasQt import ImageViewCanvas
 from ginga.BaseImage import BaseImage
 from ginga.LayerImage import LayerImage
+from ginga.ImageView import ImageViewError
 from planetaryimage import PDS3Image
 import argparse
 import math
@@ -1109,7 +1110,10 @@ class PDSViewer(QtWidgets.QMainWindow):
         # The default transform/rotation of the image will be image specific so
         # transform bools will change in the future
         self.pds_view.transform(False, False, False)
-        self.pds_view.zoom_fit()
+        try:
+            self.pds_view.zoom_fit()
+        except ImageViewError:
+            pass
         self.histogram.restore()
 
     def start_ROI(self, pds_view, button, data_x, data_y):

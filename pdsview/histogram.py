@@ -384,7 +384,7 @@ class Histogram(FigureCanvasQTAgg):
         self.setSizePolicy(policy)
         self.setMinimumSize(self.size())
         self._ax = fig.add_subplot(111)
-        self._ax.set_axis_bgcolor('black')
+        self._ax.set_facecolor('black')
         self._left_vline = None
         self._right_vline = None
 
