@@ -5,7 +5,7 @@ import pytestqt
 import pytest
 import numpy as np
 from matplotlib.lines import Line2D
-from ginga.qtw.QtHelp import QtGui, QtCore
+from qtpy import QtWidgets, QtCore
 import os
 from matplotlib.backend_bases import MouseEvent
 
@@ -103,14 +103,14 @@ def test_model_data():
 
 def test_model_register():
     model = histogram.HistogramModel(image_view)
-    mock_view = QtGui.QWidget()
+    mock_view = QtWidgets.QWidget()
     model.register(mock_view)
     assert mock_view in model._views
 
 
 def test_model_unregister():
     model = histogram.HistogramModel(image_view)
-    mock_view = QtGui.QWidget()
+    mock_view = QtWidgets.QWidget()
     model.register(mock_view)
     assert mock_view in model._views
     model.unregister(mock_view)

@@ -1,6 +1,6 @@
 from pdsview import pdsview
 import pytestqt
-from ginga.qtw.QtHelp import QtGui, QtCore
+from qtpy import QtWidgets, QtCore
 import os
 
 FILE_1 = os.path.join(
@@ -37,21 +37,21 @@ def test_channels_dialog(qtbot):
     print(dialog.image_names)
     assert dialog.image_names == [FILE_5_NAME, FILE_3_NAME, FILE_1_NAME,
                                   FILE_2_NAME, FILE_4_NAME]
-    assert isinstance(dialog.image_list, QtGui.QTreeWidget)
+    assert isinstance(dialog.image_list, QtWidgets.QTreeWidget)
     assert dialog.image_list.columnCount() == 1
-    assert isinstance(dialog.items[0], QtGui.QTreeWidgetItem)
+    assert isinstance(dialog.items[0], QtWidgets.QTreeWidgetItem)
     assert dialog.items[0].text(0) == FILE_5_NAME
     assert dialog.current_index == 0
-    assert isinstance(dialog.rgb_check_box, QtGui.QCheckBox)
+    assert isinstance(dialog.rgb_check_box, QtWidgets.QCheckBox)
     assert dialog.rgb_check_box.checkState() == QtCore.Qt.Unchecked
-    assert isinstance(dialog.red_menu, QtGui.QComboBox)
+    assert isinstance(dialog.red_menu, QtWidgets.QComboBox)
     assert dialog.red_menu.count() == 5
-    assert isinstance(dialog.red_alpha_slider, QtGui.QSlider)
+    assert isinstance(dialog.red_alpha_slider, QtWidgets.QSlider)
     assert dialog.red_alpha_slider.value() == 100
     assert dialog.red_alpha_slider.maximum() == 100
     assert dialog.red_alpha_slider.minimum() == 0
     assert dialog.red_alpha_slider.width() == 100
-    assert isinstance(dialog.layout, QtGui.QGridLayout)
+    assert isinstance(dialog.layout, QtWidgets.QGridLayout)
 
 
 def test_menus_current_text(qtbot):

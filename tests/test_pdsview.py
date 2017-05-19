@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 from pdsview import pdsview
 import pytestqt
-from ginga.qtw.QtHelp import QtGui, QtCore
+from qtpy import QtCore
 import os
 
 FILE_1 = os.path.join(

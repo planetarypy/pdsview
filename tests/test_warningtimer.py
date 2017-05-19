@@ -3,7 +3,7 @@
 from pdsview import warningtimer
 import pytestqt
 import pytest
-from ginga.qtw.QtHelp import QtGui, QtCore
+from qtpy import QtWidgets
 import os
 
 
@@ -109,4 +109,4 @@ def test_warningtimer_close_by_timer(qtbot):
     test_view.start_timer()
     qtbot.waitUntil(lambda: test_model.time_to_wait < 0, 3000)
     assert not test_view.isVisible()
-    assert test_view.result() == QtGui.QDialog.Accepted
+    assert test_view.result() == QtWidgets.QDialog.Accepted
