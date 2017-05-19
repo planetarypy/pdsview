@@ -830,12 +830,10 @@ class PDSViewer(QtWidgets.QMainWindow):
         self.setCentralWidget(vw)
         vw.setLayout(main_layout)
 
+        self.pds_view.set_desired_size(1, 1)
+
         if self.image_set.current_image:
             self.display_image()
-
-        self.adjustSize()
-        width = self.size().width()
-        self.resize(width, width)
 
     def switch_rgb(self, state):
         """Display rgb image when rgb box is checked, single band otherwise"""
@@ -1110,10 +1108,7 @@ class PDSViewer(QtWidgets.QMainWindow):
         # The default transform/rotation of the image will be image specific so
         # transform bools will change in the future
         self.pds_view.transform(False, False, False)
-        try:
-            self.pds_view.zoom_fit()
-        except ImageViewError:
-            pass
+        self.pds_view.zoom_fit()
         self.histogram.restore()
 
     def start_ROI(self, pds_view, button, data_x, data_y):
