@@ -31,11 +31,12 @@ On OS X you must first install the Qt UI toolkit using Homebrew
     brew install qt
 
 Create a new virtual environment, install the `pdsview` module with pip,
-and setup the PySide environment::
+and setup the PySide environment. You must install either PySide, PyQt5, or
+PyQt4 as well (recommend PyQt5)::
 
     mkvirtualenv pdsview
     pip install pdsview
-    pyside_postinstall.py -install
+    pip install PyQt5
 
 Now you should be able to run the `pdsview` program.
 
