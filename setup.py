@@ -20,7 +20,7 @@ requirements = [
 
 setup(
     name='pdsview',
-    version='0.4.2',
+    version='0.5.0',
     description="PDS Image Viewer",
     long_description=readme + '\n\n' + history,
     author="PlanetaryPy Developers",
@@ -51,6 +51,7 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
     ],
     entry_points={
         'console_scripts': [

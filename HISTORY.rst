@@ -3,6 +3,12 @@
 History
 -------
 
+0.5.0 (2017-05-22)
+-------------------
+
+* Use QtPy and do not depend on PySide
+* Create a histogram to apply cut levels
+
 0.4.1 (2015-09-10)
 ---------------------
 
