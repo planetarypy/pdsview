@@ -3,8 +3,9 @@
 from pdsview import warningtimer
 import pytestqt
 import pytest
-from ginga.qtw.QtHelp import QtGui, QtCore
+from qtpy import QtWidgets
 import os
+import sys
 
 
 def test_model_init():
@@ -73,13 +74,13 @@ def test_warningtimer_one_second_passed(qtbot):
     assert test_model.time_to_wait == 2
 
 
-def test_warningtimer_one_second_passed(qtbot):
+def test_warningtimer_one_second_passed2(qtbot):
     test_model = warningtimer.WarningTimerModel(None, "Title", "Message")
     test_view = warningtimer.WarningTimer(test_model, start_timer=False)
     test_view.show()
     qtbot.addWidget(test_view)
     assert test_model.time_to_wait == 3
-    assert test_view.text() == test_model.text 
+    assert test_view.text() == test_model.text
     # Test that one second passed will eventully call change text
     test_view.one_second_passed()
     assert test_model.time_to_wait == 2
@@ -89,6 +90,7 @@ def test_warningtimer_one_second_passed(qtbot):
     assert test_view.text() == "New Message\n\n Closing in 2 seconds"
 
 
+@pytest.mark.skipif(sys.platform == 'darwin', reason="No titles on macOS")
 def test_warningtimer_change_title(qtbot):
     test_model = warningtimer.WarningTimerModel(None, "Title", "Message")
     test_view = warningtimer.WarningTimer(test_model, start_timer=False)
@@ -109,4 +111,4 @@ def test_warningtimer_close_by_timer(qtbot):
     test_view.start_timer()
     qtbot.waitUntil(lambda: test_model.time_to_wait < 0, 3000)
     assert not test_view.isVisible()
-    assert test_view.result() == QtGui.QDialog.Accepted
+    assert test_view.result() == QtWidgets.QDialog.Accepted

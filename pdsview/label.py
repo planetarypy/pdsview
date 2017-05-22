@@ -7,14 +7,14 @@ label being displayed is always the label for the current product being
 displayed.
 """
 
-from ginga.qtw.QtHelp import QtGui, QtCore
+from qtpy import QtWidgets, QtCore, QtGui
 try:
     import textfinder
 except:
     from pdsview import textfinder
 
 
-class LabelView(QtGui.QDialog):
+class LabelView(QtWidgets.QDialog):
     """A PDS image label viewer."""
 
     def __init__(self, parent):
@@ -27,19 +27,19 @@ class LabelView(QtGui.QDialog):
         self.is_open = True
 
         # Setting up the layout boxes.
-        self.text_layout = QtGui.QVBoxLayout()
+        self.text_layout = QtWidgets.QVBoxLayout()
         self.text_layout.setContentsMargins(QtCore.QMargins(2, 2, 2, 2))
-        self.button_layout = QtGui.QHBoxLayout()
+        self.button_layout = QtWidgets.QHBoxLayout()
         self.button_layout.addStretch()
         self.button_layout.setContentsMargins(QtCore.QMargins(4, 2, 4, 2))
-        self.layout = QtGui.QGridLayout()
+        self.layout = QtWidgets.QGridLayout()
 
         # Setting up window details.
         self.setWindowTitle("Label")
         self.resize(640, 620)
 
         # Setting up the area where the label will be displayed.
-        self.label_contents = QtGui.QTextEdit()
+        self.label_contents = QtWidgets.QTextEdit()
         self.label_contents.setReadOnly(True)
         self.font = QtGui.QFont("Courier")
         self.font.setPointSize(12)
@@ -49,15 +49,15 @@ class LabelView(QtGui.QDialog):
         self.label_contents.setText('\n'.join(self.parent.image_label))
 
         # Creating and binding the buttons.
-        self.find_button = QtGui.QPushButton("Find")
+        self.find_button = QtWidgets.QPushButton("Find")
         self.find_button.clicked.connect(self.finder_window)
-        self.cancel_button = QtGui.QPushButton("Cancel")
+        self.cancel_button = QtWidgets.QPushButton("Cancel")
         self.cancel_button.clicked.connect(self.cancel)
 
         # Adding the text and button widgets to the layout boxes.
         self.text_layout.addWidget(self.label_contents, stretch=0)
-        self.button_layout.addWidget(self.find_button, 0, 0)
-        self.button_layout.addWidget(self.cancel_button, 0, 1)
+        self.button_layout.addWidget(self.find_button)
+        self.button_layout.addWidget(self.cancel_button)
 
         # Adding all of the layout boxes to the overall layout.
         self.layout.addLayout(self.text_layout, 0, 0)

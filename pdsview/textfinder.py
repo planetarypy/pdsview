@@ -5,10 +5,10 @@ being entered. When the search window is closed (hidden), the highlighting
 will be undone and the query will be cleared.
 """
 
-from ginga.qtw.QtHelp import QtGui, QtCore
+from qtpy import QtWidgets, QtCore, QtGui
 
 
-class LabelSearch(QtGui.QDialog):
+class LabelSearch(QtWidgets.QDialog):
     """A simple search tool for text widgets."""
 
     def __init__(self, parent):
@@ -25,19 +25,19 @@ class LabelSearch(QtGui.QDialog):
         self.resize(250, 70)
         self.setContentsMargins(QtCore.QMargins(2, 2, 2, 2))
 
-        self.find_field = QtGui.QTextEdit(self)
+        self.find_field = QtWidgets.QTextEdit(self)
         self.find_field.resize(200, 50)
         self.font = QtGui.QFont("Monaco")
         self.font.setPointSize(12)
 
         # This is a live search, so the only button needed is one to hide the
         # window.
-        self.ok_button = QtGui.QPushButton("Ok")
+        self.ok_button = QtWidgets.QPushButton("Ok")
         self.ok_button.clicked.connect(self.cancel)
 
-        self.layout = QtGui.QVBoxLayout()
-        self.layout.addWidget(self.find_field, 0, 0)
-        self.layout.addWidget(self.ok_button, 1, 0)
+        self.layout = QtWidgets.QVBoxLayout()
+        self.layout.addWidget(self.find_field)
+        self.layout.addWidget(self.ok_button)
 
         self.setLayout(self.layout)
 

@@ -1,6 +1,6 @@
 from pdsview import pdsview
 import pytestqt
-from ginga.qtw.QtHelp import QtGui, QtCore
+from qtpy import QtWidgets, QtCore
 import os
 
 FILE_1 = os.path.join(
@@ -34,31 +34,30 @@ def test_channels_dialog(qtbot):
     qtbot.addWidget(dialog)
     assert dialog.main_window == window
     assert dialog.current_image == window.image_set.current_image[0]
-    print(dialog.image_names)
     assert dialog.image_names == [FILE_5_NAME, FILE_3_NAME, FILE_1_NAME,
                                   FILE_2_NAME, FILE_4_NAME]
-    assert isinstance(dialog.image_list, QtGui.QTreeWidget)
+    assert isinstance(dialog.image_list, QtWidgets.QTreeWidget)
     assert dialog.image_list.columnCount() == 1
-    assert isinstance(dialog.items[0], QtGui.QTreeWidgetItem)
+    assert isinstance(dialog.items[0], QtWidgets.QTreeWidgetItem)
     assert dialog.items[0].text(0) == FILE_5_NAME
     assert dialog.current_index == 0
-    assert isinstance(dialog.rgb_check_box, QtGui.QCheckBox)
+    assert isinstance(dialog.rgb_check_box, QtWidgets.QCheckBox)
     assert dialog.rgb_check_box.checkState() == QtCore.Qt.Unchecked
-    assert isinstance(dialog.red_menu, QtGui.QComboBox)
+    assert isinstance(dialog.red_menu, QtWidgets.QComboBox)
     assert dialog.red_menu.count() == 5
-    assert isinstance(dialog.red_alpha_slider, QtGui.QSlider)
+    assert isinstance(dialog.red_alpha_slider, QtWidgets.QSlider)
     assert dialog.red_alpha_slider.value() == 100
     assert dialog.red_alpha_slider.maximum() == 100
     assert dialog.red_alpha_slider.minimum() == 0
     assert dialog.red_alpha_slider.width() == 100
-    assert isinstance(dialog.layout, QtGui.QGridLayout)
+    assert isinstance(dialog.layout, QtWidgets.QGridLayout)
 
 
 def test_menus_current_text(qtbot):
     """Test menus_current_text returns the correct text from the menu"""
     window = pdsview.PDSViewer(test_images)
     dialog = pdsview.ChannelsDialog(window.image_set.current_image[0], window)
-    dialog.show()
+    # dialog.show()
     qtbot.addWidget(dialog)
     bands = dialog.menus_current_text()
     assert bands[0] == window.rgb[0].file_name
@@ -91,13 +90,14 @@ def test_change_image(qtbot):
     qtbot.addWidget(window)
     qtbot.mouseClick(window.channels_button, QtCore.Qt.LeftButton)
     dialog = window.channels_window
+    qtbot.addWidget(dialog)
     # Initial check that the first image is highlighted, second is not
-    assert dialog.image_list.isItemSelected(dialog.items[0])
-    assert not dialog.image_list.isItemSelected(dialog.items[1])
+    assert dialog.items[0].isSelected()
+    assert not dialog.items[1].isSelected()
     qtbot.mouseClick(window.next_image, QtCore.Qt.LeftButton)
     # Test that the second image is highlighted and the first is not
-    assert not dialog.image_list.isItemSelected(dialog.items[0])
-    assert dialog.image_list.isItemSelected(dialog.items[1])
+    assert not dialog.items[0].isSelected()
+    assert dialog.items[1].isSelected()
 
 
 def test_close_dialog(qtbot):
@@ -106,6 +106,7 @@ def test_close_dialog(qtbot):
     qtbot.addWidget(window)
     qtbot.mouseClick(window.channels_button, QtCore.Qt.LeftButton)
     dialog = window.channels_window
+    qtbot.addWidget(dialog)
     # Test this bool is set when the dialog window is opened
     assert dialog.main_window.channels_window_is_open
     default_pos = dialog.pos()
@@ -123,6 +124,7 @@ def test_close_dialog(qtbot):
     assert not window.channels_window
     qtbot.mouseClick(window.channels_button, QtCore.Qt.LeftButton)
     dialog = window.channels_window
+    qtbot.addWidget(dialog)
     assert dialog.main_window.channels_window_is_open
     # Test the dialog opens in the new position and not the default position
     assert dialog.pos() != default_pos
@@ -138,6 +140,7 @@ def test_create_composite_image(qtbot):
     window.next_channel.setEnabled(True)
     window.previous_channel.setEnabled(True)
     dialog = window.channels_window
+    qtbot.addWidget(dialog)
     # Initial check the current image is a single band image
     assert dialog.current_image.ndim == 2
     qtbot.mouseClick(dialog.rgb_check_box, QtCore.Qt.LeftButton)
@@ -154,6 +157,7 @@ def test_update_menus_index(qtbot):
     qtbot.addWidget(window)
     qtbot.mouseClick(window.channels_button, QtCore.Qt.LeftButton)
     dialog = window.channels_window
+    qtbot.addWidget(dialog)
     default_indices = dialog.indices
     dialog.red_menu.setCurrentIndex(3)
     dialog.green_menu.setCurrentIndex(0)
@@ -169,6 +173,7 @@ def test_update_menus_current_item(qtbot):
     qtbot.addWidget(window)
     qtbot.mouseClick(window.channels_button, QtCore.Qt.LeftButton)
     dialog = window.channels_window
+    qtbot.addWidget(dialog)
     default_bands = dialog.menus_current_text()
     window.rgb = [window.image_set.images[0][0]] * 3
     dialog.update_menus_current_item()

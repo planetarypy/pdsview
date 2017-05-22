@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 from pdsview import pdsview
 import pytestqt
-from ginga.qtw.QtHelp import QtGui, QtCore
+from qtpy import QtCore
 import os
 FILE_1 = os.path.join(
     'tests', 'mission_data', '2m132591087cfd1800p2977m2f1.img')

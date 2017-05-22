@@ -2,10 +2,15 @@ import warnings
 
 import numpy as np
 from matplotlib.figure import Figure
-from ginga.qtw.QtHelp import QtGui, QtCore
-from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg
+from qtpy import QtWidgets, QtCore
+from qtpy import QT_VERSION
 
 from .warningtimer import WarningTimer, WarningTimerModel
+qt_ver = int(QT_VERSION[0])
+if qt_ver == 4:
+    from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg
+elif qt_ver == 5:
+    from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 
 
 class HistogramModel(object):
@@ -153,7 +158,7 @@ class HistogramModel(object):
 
         Parameters
         ----------
-        view : :class:`QtGui.QWidget`
+        view : :class:`QtWidgets.QWidget`
             A view that utilizes this model
         """
         self._views.add(view)
@@ -163,7 +168,7 @@ class HistogramModel(object):
 
         Parameters
         ----------
-        view : :class:`QtGui.QWidget`
+        view : :class:`QtWidgets.QWidget`
             A view that utilizes this model
         """
         self._views.remove(view)
@@ -240,7 +245,7 @@ class HistogramController(object):
         self.model.restore()
 
 
-class HistogramWidget(QtGui.QWidget):
+class HistogramWidget(QtWidgets.QWidget):
     """View to display the histogram with text boxes for cuts and bins
 
     Parameters
@@ -260,27 +265,27 @@ class HistogramWidget(QtGui.QWidget):
         self.model.register(self)
         self.controller = HistogramController(self.model, self)
         self.histogram = Histogram(model)
-        self._cut_low_label = QtGui.QLabel("Cut Low:")
-        self._cut_low_box = QtGui.QLineEdit()
-        self._cut_high_label = QtGui.QLabel("Cut High:")
-        self._cut_high_box = QtGui.QLineEdit()
-        self._bins_label = QtGui.QLabel("Bins:")
-        self._bins_box = QtGui.QLineEdit()
+        self._cut_low_label = QtWidgets.QLabel("Cut Low:")
+        self._cut_low_box = QtWidgets.QLineEdit()
+        self._cut_high_label = QtWidgets.QLabel("Cut High:")
+        self._cut_high_box = QtWidgets.QLineEdit()
+        self._bins_label = QtWidgets.QLabel("Bins:")
+        self._bins_box = QtWidgets.QLineEdit()
         layout = self._create_layout()
         self.setLayout(layout)
         self.change_bins()
         self.change_cuts()
 
     def _create_layout(self):
-        layout = QtGui.QVBoxLayout()
-        cut_boxes_layout = QtGui.QGridLayout()
+        layout = QtWidgets.QVBoxLayout()
+        cut_boxes_layout = QtWidgets.QGridLayout()
         cut_boxes_layout.addWidget(self._cut_low_label, 0, 0)
         cut_boxes_layout.addWidget(self._cut_low_box, 0, 1)
         cut_boxes_layout.addWidget(self._cut_high_label, 0, 2)
         cut_boxes_layout.addWidget(self._cut_high_box, 0, 3)
         cut_boxes_layout.addWidget(self._bins_label, 0, 4)
         cut_boxes_layout.addWidget(self._bins_box, 0, 5)
-        cut_boxes = QtGui.QWidget()
+        cut_boxes = QtWidgets.QWidget()
         cut_boxes.setLayout(cut_boxes_layout)
         layout.addWidget(self.histogram)
         layout.addWidget(cut_boxes)
@@ -379,7 +384,7 @@ class Histogram(FigureCanvasQTAgg):
         self.setSizePolicy(policy)
         self.setMinimumSize(self.size())
         self._ax = fig.add_subplot(111)
-        self._ax.set_axis_bgcolor('black')
+        self._ax.set_facecolor('black')
         self._left_vline = None
         self._right_vline = None
 
