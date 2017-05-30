@@ -212,12 +212,12 @@ class ChannelsDialog(QtWidgets.QDialog):
             for band, alpha in zip(bands, alphas):
                 layer = file_dict[band]
                 layer_data = layer.data * alpha
-                composite_layers.append(layer_data.astype(layer.data.dtype))
+                composite_layers.append(layer_data)
             rgb_data = np.dstack(composite_layers)
             self.current_image.set_data(rgb_data)
             self.update_menus_index()
-            self.main_window.next_channel.setEnabled(False)
-            self.main_window.previous_channel.setEnabled(False)
+            self.main_window.next_channel_btn.setEnabled(False)
+            self.main_window.previous_channel_btn.setEnabled(False)
         except ValueError:
             menus = [self.red_menu, self.green_menu, self.blue_menu]
             for menu, index in zip(menus, self.indices):
