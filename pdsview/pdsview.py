@@ -114,15 +114,8 @@ class ImageSet(object):
         Whether the next and previous buttons should be enabled
     """
 
-    # __4_hashes = '#' * 4
-    # __5_hashes = '#' * 5
-    # __x_value_prefix = 'X:'
-    # x_value_default = __x_value_prefix + ' ' + __4_hashes
-    # __y_value_prefix = 'Y:'
-    # y_value_default = __y_value_prefix + ' ' + __4_hashes
-    # pixel_value_rgb_default = (
-    #     'R: ' + __5_hashes + 'G: ' + __5_hashes + ' B: ' + __5_hashes
-    # )
+    __4_hashes = '#' * 4
+    __5_hashes = '#' * 5
 
     def __init__(self, filepaths):
         # Remove any duplicate filepaths and sort the list alpha-numerically.
@@ -138,7 +131,8 @@ class ImageSet(object):
         self._last_channel = None
         self._x_value = 0
         self._y_value = 0
-        self._pixel_value = 0
+        self._pixel_value = (0, )
+        self.use_default_text = True
         if self.images:
             self.current_image = self.images[self.current_image_index]
         else:
@@ -214,34 +208,43 @@ class ImageSet(object):
 
     @x_value.setter
     def x_value(self, new_x_value):
-        self._x_value = int(new_x_value)
+        self._x_value = int(round(new_x_value, 0))
+
+    @property
+    def x_value_text(self):
+        return 'X: %d' % (self.x_value)
 
     @property
     def y_value(self):
-        return self._x_value
+        return self._y_value
 
     @y_value.setter
     def y_value(self, new_y_value):
-        self._y_value = int(new_y_value)
+        self._y_value = int(round(new_y_value, 0))
 
-    def pixel_value_decorator(setter):
-        @wraps(setter)
-        def wrapper(new_pixel_value):
-            if isinstance(new_pixel_value, (tuple, list)):
-                _new_pixel_value = [float(pixel) for pixel in new_pixel_value]
-            else:
-                _new_pixel_value = [float(new_pixel_value)]
-            return setter(tuple(_new_pixel_value))
-        return wrapper
+    @property
+    def y_value_text(self):
+        return 'Y: %d' % (self.y_value)
 
     @property
     def pixel_value(self):
-        return self._x_value
+        return tuple([round(value, 3) for value in self._pixel_value])
 
-    @pixel_value_decorator
     @pixel_value.setter
     def pixel_value(self, new_pixel_value):
-        self._pixel_value = new_pixel_value
+        if isinstance(new_pixel_value, (tuple, list, np.ndarray)):
+            _new_pixel_value = [float(pixel) for pixel in new_pixel_value]
+        else:
+            _new_pixel_value = [float(new_pixel_value)]
+        self._pixel_value = tuple(_new_pixel_value)
+
+    @property
+    def pixel_value_text(self):
+        current_image = self.current_image[self.channel]
+        if current_image.ndim == 3:
+            return 'R: %.3f G: %.3f B: %.3f' % (self.pixel_value)
+        else:
+            return 'Value: %.3f' % (self.pixel_value)
 
     def append(self, new_files, dipslay_first_new_image):
         """Append a new image to the images list if it is pds compatible"""
@@ -448,6 +451,15 @@ class PDSController(object):
 
     def previous_channel(self):
         self.model.channel -= 1
+
+    def new_x_value(self, new_x):
+        self.model.x_value = new_x
+
+    def new_y_value(self, new_y):
+        self.model.y_value = new_y
+
+    def new_pixel_value(self, new_pixel_value):
+        self.model.pixel_value = new_pixel_value
 
 
 class PDSViewer(QtWidgets.QMainWindow):
@@ -776,36 +788,37 @@ class PDSViewer(QtWidgets.QMainWindow):
             for band in current_image:
                 self.rgb.append(band)
 
+    def _point_in_image(self, point):
+        data_x, data_y = point
+        height, width = self.current_image.shape[:2]
+        in_width = data_x >= -0.5 and data_x <= (width + 0.5)
+        in_height = data_y >= -0.5 and data_y <= (height + 0.5)
+        return in_width and in_height
+
     def display_values(self, pds_view, button, data_x, data_y):
         "Display the x, y, and pixel value when the mouse is pressed and moved"
         current_image = self.image_set.current_image[self.image_set.channel]
-        try:
-            # When clicking inside the image
+        if self._point_in_image((data_x, data_y)):
             image = pds_view.get_image()
-            x = int(round(data_x, 0))
-            y = int(round(data_y, 0))
-            value = image.get_data_xy(x, y)
-            self.x_value.setText('X: %.0f' % (x))
-            self.y_value.setText('Y: %.0f' % (y))
-            if current_image.ndim == 3:
-                # Show different band values for 3 band images
-                R = str(round(value[0], 3))
-                G = str(round(value[1], 3))
-                B = str(round(value[2], 3))
-                self.pixel_value.setText('R: %s G: %s B: %s' % (R, G, B))
-            elif current_image.ndim == 2:
-                # Show single pixel value for 2 band images
-                self.pixel_value.setText('Value: %s' % (str(round(value, 3))))
-        except:
-            # When clicking outside the image
+            self.controller.new_x_value(data_x)
+            self.controller.new_y_value(data_y)
+            self.x_value.setText(self.image_set.x_value_text)
+            self.y_value.setText(self.image_set.y_value_text)
+            x, y = self.image_set.x_value, self.image_set.y_value
+            self.controller.new_pixel_value(image.get_data_xy(x, y))
+            self.pixel_value.setText(self.image_set.pixel_value_text)
+        else:
             x = pds_view.get_last_data_xy()[0]
             y = pds_view.get_last_data_xy()[1]
-            self.x_value.setText('X: %.0f' % (x))
-            self.y_value.setText('Y: %.0f' % (y))
+            self.controller.new_x_value(x)
+            self.controller.new_y_value(y)
+            self.x_value.setText(self.image_set.x_value_text)
+            self.y_value.setText(self.image_set.y_value_text)
             if current_image.ndim == 3:
-                self.pixel_value.setText('R: 0 G: 0 B: 0')
+                self.controller.new_pixel_value((0, 0, 0))
             elif current_image.ndim == 2:
-                self.pixel_value.setText('Value: 0')
+                self.controller.new_pixel_value(0)
+            self.pixel_value.setText(self.image_set.pixel_value_text)
 
     def display_label(self):
         """Display the label over the image"""
