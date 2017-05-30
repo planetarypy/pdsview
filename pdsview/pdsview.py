@@ -141,6 +141,10 @@ class ImageSet(object):
         """Register a view with the model"""
         self._views.add(view)
 
+    def unregister(self, view):
+        """Unregister a view with the model"""
+        self._views.remove(view)
+
     def create_image_set(self, filepaths):
         rgb = ['R', 'G', 'B']
         for filepath in filepaths:
