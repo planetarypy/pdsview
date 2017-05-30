@@ -206,12 +206,11 @@ class ImageSet(object):
     def channel(self, new_channel):
         number_channels = len(self.current_image)
         if number_channels == 1:
-            pass
-        else:
-            self._previous_channel = self._channel
-            self._channel = new_channel
-            if self._channel == number_channels:
-                self._channel = 0
+            return
+        self._previous_channel = self._channel
+        self._channel = new_channel
+        if self._channel == number_channels:
+            self._channel = 0
         for view in self._views:
             view.display_image()
 
@@ -546,9 +545,10 @@ class PDSViewer(QtWidgets.QMainWindow):
         self.channels_button = QtWidgets.QPushButton("Channels")
         self.channels_button.clicked.connect(self.channels_dialog)
         # Set Text so the size of the boxes are at an appropriate size
-        self.x_value = QtWidgets.QLabel('X: #####')
-        self.y_value = QtWidgets.QLabel('Y: #####')
-        self.pixel_value = QtWidgets.QLabel('R: ######, G: ###### B: ######')
+        self.x_value_lbl = QtWidgets.QLabel('X: #####')
+        self.y_value_lbl = QtWidgets.QLabel('Y: #####')
+        self.pixel_value_lbl = QtWidgets.QLabel(
+            'R: ######, G: ###### B: ######')
 
         self.pixels = QtWidgets.QLabel('#Pixels: #######')
         self.std_dev = QtWidgets.QLabel(
@@ -562,9 +562,9 @@ class PDSViewer(QtWidgets.QMainWindow):
 
         main_layout.setHorizontalSpacing(10)
         # Set format for each information box to be the same
-        for info_box in (self.x_value, self.y_value, self.pixel_value,
-                         self.pixels, self.std_dev, self.mean, self.median,
-                         self.min, self.max):
+        for info_box in (self.x_value_lbl, self.y_value_lbl,
+                         self.pixel_value_lbl, self.pixels, self.std_dev,
+                         self.mean, self.median, self.min, self.max):
             info_box.setFrameShape(QtWidgets.QFrame.Panel)
             info_box.setFrameShadow(QtWidgets.QFrame.Sunken)
             info_box.setLineWidth(3)
@@ -584,19 +584,20 @@ class PDSViewer(QtWidgets.QMainWindow):
         min_width = self.histogram_widget.histogram.width()
         for widget in (open_file, self.next_image_btn, self.previous_image_btn,
                        self.channels_button, self.open_label,
-                       self.restore_defaults, self.rgb_check_box, self.x_value,
-                       self.y_value, quit_button, self.next_channel_btn,
-                       self.previous_channel_btn, self.pixel_value):
+                       self.restore_defaults, self.rgb_check_box,
+                       self.x_value_lbl, self.y_value_lbl, quit_button,
+                       self.next_channel_btn, self.previous_channel_btn,
+                       self.pixel_value_lbl):
             widget.setMinimumWidth(min_width)
             widget.setMaximumWidth(min_width)
-        fixed_size = self.pixel_value.sizeHint().width()
-        self.x_value.setMinimumWidth(fixed_size / 2)
-        self.x_value.setMaximumWidth(fixed_size / 2)
-        self.y_value.setMinimumWidth(fixed_size / 2)
-        self.y_value.setMaximumWidth(fixed_size / 2)
+        fixed_size = self.pixel_value_lbl.sizeHint().width()
+        self.x_value_lbl.setMinimumWidth(fixed_size / 2)
+        self.x_value_lbl.setMaximumWidth(fixed_size / 2)
+        self.y_value_lbl.setMinimumWidth(fixed_size / 2)
+        self.y_value_lbl.setMaximumWidth(fixed_size / 2)
         column_spacing_x_y = 5
-        self.pixel_value.setMinimumWidth(fixed_size + column_spacing_x_y)
-        self.pixel_value.setMaximumWidth(fixed_size + column_spacing_x_y)
+        self.pixel_value_lbl.setMinimumWidth(fixed_size + column_spacing_x_y)
+        self.pixel_value_lbl.setMaximumWidth(fixed_size + column_spacing_x_y)
 
         main_layout.addWidget(open_file, 0, 0)
         main_layout.addWidget(quit_button, 0, 1)
@@ -617,10 +618,10 @@ class PDSViewer(QtWidgets.QMainWindow):
         main_layout.addWidget(self.histogram_widget, 5, 0, 2, 2)
         x_y_layout = QtWidgets.QGridLayout()
         x_y_layout.setHorizontalSpacing(column_spacing_x_y)
-        x_y_layout.addWidget(self.x_value, 0, 0)
-        x_y_layout.addWidget(self.y_value, 0, 1)
+        x_y_layout.addWidget(self.x_value_lbl, 0, 0)
+        x_y_layout.addWidget(self.y_value_lbl, 0, 1)
         main_layout.addLayout(x_y_layout, 7, 0)
-        main_layout.addWidget(self.pixel_value, 8, 0, 1, 2)
+        main_layout.addWidget(self.pixel_value_lbl, 8, 0, 1, 2)
         main_layout.addWidget(self.pds_view.get_widget(), 2, 2, 9, 4)
 
         main_layout.setRowStretch(9, 1)
@@ -653,6 +654,8 @@ class PDSViewer(QtWidgets.QMainWindow):
 
         self.histogram.set_data()
 
+        self._disable_next_previous()
+
         self._reset_ROI()
 
         self._update_label()
@@ -683,19 +686,19 @@ class PDSViewer(QtWidgets.QMainWindow):
 
     def _renew_display_values(self):
         try:
-            data_x = int(self.x_value.text()[3:])
-            data_y = int(self.y_value.text()[3:])
+            data_x = self.image_set.x_value
+            data_y = self.image_set.y_value
             self.display_values(self.pds_view, None, data_x, data_y)
         except ValueError:
             pass
 
     def _reset_display_values(self):
-        self.x_value.setText('X: ????')
-        self.y_value.setText('Y: ????')
+        self.x_value_lbl.setText('X: ????')
+        self.y_value_lbl.setText('Y: ????')
         if self.current_image.ndim == 3:
-            self.pixel_value.setText('R: ???? G: ???? B: ????')
+            self.pixel_value_lbl.setText('R: ???? G: ???? B: ????')
         elif self.current_image.ndim == 2:
-            self.pixel_value.setText('Value: ????')
+            self.pixel_value_lbl.setText('Value: ????')
 
     def _update_label(self):
         # Update label
@@ -820,18 +823,18 @@ class PDSViewer(QtWidgets.QMainWindow):
             self.controller.new_pixel_value(0)
 
     def set_x_value_text(self):
-        self.x_value.setText(self.image_set.x_value_text)
+        self.x_value_lbl.setText(self.image_set.x_value_text)
 
     def set_y_value_text(self):
-        self.y_value.setText(self.image_set.y_value_text)
+        self.y_value_lbl.setText(self.image_set.y_value_text)
 
     def set_pixel_value_text(self):
-        self.pixel_value.setText(self.image_set.pixel_value_text)
+        self.pixel_value_lbl.setText(self.image_set.pixel_value_text)
 
     def display_values(self, pds_view, button, data_x, data_y):
         "Display the x, y, and pixel value when the mouse is pressed and moved"
         point = (data_x, data_y)
-        if self._point_in_image(point):
+        if self._point_is_in_image(point):
             self._set_point_in_image(point)
         else:
             self._set_point_out_of_image()
