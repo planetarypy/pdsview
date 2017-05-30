@@ -3,6 +3,7 @@
 import sys
 import os
 import logging
+from functools import wraps
 try:
     from . import label
 except ImportError:
@@ -113,6 +114,16 @@ class ImageSet(object):
         Whether the next and previous buttons should be enabled
     """
 
+    # __4_hashes = '#' * 4
+    # __5_hashes = '#' * 5
+    # __x_value_prefix = 'X:'
+    # x_value_default = __x_value_prefix + ' ' + __4_hashes
+    # __y_value_prefix = 'Y:'
+    # y_value_default = __y_value_prefix + ' ' + __4_hashes
+    # pixel_value_rgb_default = (
+    #     'R: ' + __5_hashes + 'G: ' + __5_hashes + ' B: ' + __5_hashes
+    # )
+
     def __init__(self, filepaths):
         # Remove any duplicate filepaths and sort the list alpha-numerically.
         filepaths = sorted(list(set(filepaths)))
@@ -122,13 +133,16 @@ class ImageSet(object):
         self.images = []
         self.file_dict = {}
         self.create_image_set(filepaths)
-        self.current_image_index = 0
-        self.channel = 0
+        self._current_image_index = 0
+        self._channel = 0
+        self._last_channel = None
+        self._x_value = 0
+        self._y_value = 0
+        self._pixel_value = 0
         if self.images:
             self.current_image = self.images[self.current_image_index]
         else:
             self.current_image = None
-        self.enable_next_previous()
 
     def create_image_set(self, filepaths):
         rgb = ['R', 'G', 'B']
@@ -158,48 +172,76 @@ class ImageSet(object):
             except:
                 warnings.warn(filepath + " cannnot be opened")
 
-    def enable_next_previous(self):
+    @property
+    def next_prev_enabled(self):
         """Set whether the next and previous buttons are enabled."""
-        if len(self.images) > 1:
-            self.next_prev_enabled = True
+        return len(self.images) > 1
+
+    @property
+    def current_image_index(self):
+        return self._current_image_index
+
+    @current_image_index.setter
+    def current_image_index(self, index):
+        while index >= len(self.images):
+            index -= len(self.images)
+        while index < 0:
+            index += len(self.images)
+        self._current_image_index = index
+
+    @property
+    def channel(self):
+        return self._channel
+
+    @property
+    def last_channel(self):
+        return self._last_channel
+
+    @channel.setter
+    def channel(self, new_channel):
+        number_channels = len(self.current_image)
+        if number_channels == 1:
+            pass
         else:
-            self.next_prev_enabled = False
+            self._previous_channel = self._channel
+            self._channel = new_channel
+            if self._channel == number_channels:
+                self._channel = 0
 
-    def next(self):
-        """Display next image, loop to first image if past the last image"""
-        try:
-            self.current_image_index += 1
-            self.current_image = self.images[self.current_image_index]
-        except:
-            self.current_image_index = 0
-            self.current_image = self.images[self.current_image_index]
-        self.channel = 0
+    @property
+    def x_value(self):
+        return self._x_value
 
-    def previous(self):
-        """Display previous image and loop to last image if past first image"""
-        self.current_image_index -= 1
-        if self.current_image_index < 0:
-            self.current_image_index = len(self.images) - 1
-        self.current_image = self.images[self.current_image_index]
-        self.channel = 0
+    @x_value.setter
+    def x_value(self, new_x_value):
+        self._x_value = int(new_x_value)
 
-    def next_channel(self):
-        """Change to the next channel, restart if at the end of the channels"""
-        number_channels = len(self.current_image)
-        if number_channels == 1:
-            return
-        self.channel += 1
-        if self.channel == number_channels:
-            self.channel = 0
+    @property
+    def y_value(self):
+        return self._x_value
 
-    def previous_channel(self):
-        """Change to the previous channel, go to the end if at the beginning"""
-        number_channels = len(self.current_image)
-        if number_channels == 1:
-            return
-        self.channel -= 1
-        if self.channel < 0:
-            self.channel = number_channels - 1
+    @y_value.setter
+    def y_value(self, new_y_value):
+        self._y_value = int(new_y_value)
+
+    def pixel_value_decorator(setter):
+        @wraps(setter)
+        def wrapper(new_pixel_value):
+            if isinstance(new_pixel_value, (tuple, list)):
+                _new_pixel_value = [float(pixel) for pixel in new_pixel_value]
+            else:
+                _new_pixel_value = [float(new_pixel_value)]
+            return setter(tuple(_new_pixel_value))
+        return wrapper
+
+    @property
+    def pixel_value(self):
+        return self._x_value
+
+    @pixel_value_decorator
+    @pixel_value.setter
+    def pixel_value(self, new_pixel_value):
+        self._pixel_value = new_pixel_value
 
     def append(self, new_files, dipslay_first_new_image):
         """Append a new image to the images list if it is pds compatible"""
@@ -256,8 +298,7 @@ class ImageSet(object):
         pixels = (right - left) * (top - bottom)
         return pixels
 
-    def ROI_std_dev(self, left=None, bottom=None, right=None, top=None,
-                    data=None):
+    def ROI_std_dev(self, left=None, bottom=None, right=None, top=None, data=None):
         """Calculate the standard deviation in the Region of Interest
 
         Note
@@ -290,8 +331,7 @@ class ImageSet(object):
         std_dev = round(np.std(data), 6)
         return std_dev
 
-    def ROI_mean(self, left=None, bottom=None, right=None, top=None,
-                 data=None):
+    def ROI_mean(self, left=None, bottom=None, right=None, top=None, data=None):
         """Calculate the mean of the Region of Interest
 
         Parameters
@@ -314,8 +354,7 @@ class ImageSet(object):
         mean = round(np.mean(data), 4)
         return mean
 
-    def ROI_median(self, left=None, bottom=None, right=None, top=None,
-                   data=None):
+    def ROI_median(self, left=None, bottom=None, right=None, top=None, data=None):
         """Find the median of the Region of Interest
 
         Parameters
@@ -385,6 +424,32 @@ class ImageSet(object):
         return maximum
 
 
+class PDSController(object):
+
+    def __init__(self, model, view):
+        self.model = model
+        self.view = view
+
+    def _new_current_image(self):
+        index = self.model.current_image_index
+        self.model.current_image = self.model.images[index]
+        self.model.channel = 0
+
+    def next_image(self):
+        self.model.current_image_index += 1
+        self._new_current_image()
+
+    def previous_image(self):
+        self.model.current_image_index -= 1
+        self._new_current_image()
+
+    def next_channel(self):
+        self.model.channel += 1
+
+    def previous_channel(self):
+        self.model.channel -= 1
+
+
 class PDSViewer(QtWidgets.QMainWindow):
     """A display of a single image with the option to view other images
 
@@ -397,6 +462,7 @@ class PDSViewer(QtWidgets.QMainWindow):
         super(PDSViewer, self).__init__()
 
         self.image_set = image_set
+        self.controller = PDSController(self.image_set, self)
         self.rgb = []
 
         # Set the sub window names here. This implementation will help prevent
@@ -434,26 +500,22 @@ class PDSViewer(QtWidgets.QMainWindow):
         # toggle is found in load_file().
         open_file = QtWidgets.QPushButton("Open File")
         open_file.clicked.connect(self.open_file)
-        self.next_image = QtWidgets.QPushButton("Next")
-        self.next_image.clicked.connect(
-            lambda: self.display_image(next_image=True))
-        self.next_image.setEnabled(image_set.next_prev_enabled)
-        self.previous_image = QtWidgets.QPushButton("Previous")
-        self.previous_image.clicked.connect(
-            lambda: self.display_image(previous_image=True))
-        self.previous_image.setEnabled(image_set.next_prev_enabled)
+        self.next_image_btn = QtWidgets.QPushButton("Next")
+        self.next_image_btn.clicked.connect(self.next_image)
+        self.next_image_btn.setEnabled(image_set.next_prev_enabled)
+        self.previous_image_btn = QtWidgets.QPushButton("Previous")
+        self.previous_image_btn.clicked.connect(self.previous_image)
+        self.previous_image_btn.setEnabled(image_set.next_prev_enabled)
         self.open_label = QtWidgets.QPushButton("Label")
         self.open_label.clicked.connect(self.display_label)
         quit_button = QtWidgets.QPushButton("Quit")
         quit_button.clicked.connect(self.quit)
         self.rgb_check_box = QtWidgets.QCheckBox("RGB")
         self.rgb_check_box.stateChanged.connect(self.switch_rgb)
-        self.next_channel = QtWidgets.QPushButton('CH +')
-        self.next_channel.clicked.connect(
-            lambda: self.display_image(next_channel=True))
-        self.previous_channel = QtWidgets.QPushButton('CH -')
-        self.previous_channel.clicked.connect(
-            lambda: self.display_image(previous_channel=True))
+        self.next_channel_btn = QtWidgets.QPushButton('CH +')
+        self.next_channel_btn.clicked.connect(self.next_channel)
+        self.previous_channel_btn = QtWidgets.QPushButton('CH -')
+        self.previous_channel_btn.clicked.connect(self.previous_channel)
         self.restore_defaults = QtWidgets.QPushButton("Restore Defaults")
         self.restore_defaults.clicked.connect(self.restore)
         self.channels_button = QtWidgets.QPushButton("Channels")
@@ -495,11 +557,11 @@ class PDSViewer(QtWidgets.QMainWindow):
         self.histogram = HistogramModel(self.pds_view, bins=100)
         self.histogram_widget = HistogramWidget(self.histogram)
         min_width = self.histogram_widget.histogram.width()
-        for widget in (open_file, self.next_image, self.previous_image,
+        for widget in (open_file, self.next_image_btn, self.previous_image_btn,
                        self.channels_button, self.open_label,
                        self.restore_defaults, self.rgb_check_box, self.x_value,
-                       self.y_value, quit_button, self.next_channel,
-                       self.previous_channel, self.pixel_value):
+                       self.y_value, quit_button, self.next_channel_btn,
+                       self.previous_channel_btn, self.pixel_value):
             widget.setMinimumWidth(min_width)
             widget.setMaximumWidth(min_width)
         fixed_size = self.pixel_value.sizeHint().width()
@@ -516,13 +578,13 @@ class PDSViewer(QtWidgets.QMainWindow):
         main_layout.addWidget(self.pixels, 0, 2)
         main_layout.addWidget(self.mean, 0, 3)
         main_layout.addWidget(self.min, 0, 4)
-        main_layout.addWidget(self.previous_image, 1, 0)
-        main_layout.addWidget(self.next_image, 1, 1)
+        main_layout.addWidget(self.previous_image_btn, 1, 0)
+        main_layout.addWidget(self.next_image_btn, 1, 1)
         main_layout.addWidget(self.std_dev, 1, 2)
         main_layout.addWidget(self.median, 1, 3)
         main_layout.addWidget(self.max, 1, 4)
-        main_layout.addWidget(self.previous_channel, 2, 0)
-        main_layout.addWidget(self.next_channel, 2, 1)
+        main_layout.addWidget(self.previous_channel_btn, 2, 0)
+        main_layout.addWidget(self.next_channel_btn, 2, 1)
         main_layout.addWidget(self.channels_button, 3, 0)
         main_layout.addWidget(self.open_label, 3, 1)
         main_layout.addWidget(self.restore_defaults, 4, 0)
@@ -543,15 +605,132 @@ class PDSViewer(QtWidgets.QMainWindow):
         self.setCentralWidget(vw)
         vw.setLayout(main_layout)
 
-        self.pds_view.set_desired_size(1, 1)
+        self.pds_view.set_desired_size(100, 100)
 
         if self.image_set.current_image:
-            self.display_image()
+            self._display_image()
+
+    @property
+    def current_image(self):
+        return self.image_set.current_image[self.image_set.channel]
+
+    def _display_image(self):
+        self._set_rgb_state()
+        self._update_channels_image()
+        self.pds_view.set_image(self.current_image)
+        if self.current_image.not_been_displayed:
+            self.restore()
+        else:
+            self.apply_parameters(self.current_image, self.pds_view)
+        self.pds_view.delayed_redraw()
+
+        self.current_image.not_been_displayed = False
+
+        self.histogram.set_data()
+
+        self._reset_ROI()
+
+        self._update_label()
+
+        self.setWindowTitle(self.current_image.image_name)
+
+    def _reset_ROI(self):
+        if len(self.pds_view.objects) > 1:
+            self.stop_ROI(self.pds_view, None, None, None)
+            self.pds_view.update_canvas()
+        else:
+            self.set_ROI_text(
+                0, 0, self.current_image.width, self.current_image.height)
+
+    def _update_channels_image(self):
+        if self.channels_window:
+            self.update_rgb()
+            self.channels_window.change_image(self.image_set.last_channel)
+
+    def _set_rgb_state(self):
+        state = self.rgb_check_box.checkState()
+        self.switch_rgb(state)
+
+    def _disable_next_previous(self):
+        if len(self.image_set.current_image) < 3:
+            self.next_channel_btn.setEnabled(False)
+            self.previous_channel_btn.setEnabled(False)
+
+    def _renew_display_values(self):
+        try:
+            data_x = int(self.x_value.text()[3:])
+            data_y = int(self.y_value.text()[3:])
+            self.display_values(self.pds_view, None, data_x, data_y)
+        except ValueError:
+            pass
+
+    def _reset_display_values(self):
+        self.x_value.setText('X: ????')
+        self.y_value.setText('Y: ????')
+        if self.current_image.ndim == 3:
+            self.pixel_value.setText('R: ???? G: ???? B: ????')
+        elif self.current_image.ndim == 2:
+            self.pixel_value.setText('Value: ????')
+
+    def _update_label(self):
+        # Update label
+        self.image_label = self.current_image.label
+
+        # This checks to see if the label window exists and is open. If so,
+        # this resets the label field so that the label being displayed is the
+        # label for the current product. The label does not reset its position.
+        if self._label_window is not None:
+            pos = self._label_window.pos()
+            label_text = '\n'.join(self.image_label)
+            self._label_window.label_contents.setText(label_text)
+            if self._label_window.is_open:
+                self._label_window.cancel()
+                self._label_window.move(pos)
+                self._label_window.show()
+                self._label_window.is_open = True
+                self._label_window.activateWindow()
+
+    def next_image(self):
+        self._change_image(True)
+
+    def previous_image(self):
+        self._change_image(False)
+
+    def _change_image(self, is_next):
+        self.save_parameters()
+        if not self.channels_window_is_open:
+            self.channels_window = None
+        if is_next:
+            self.controller.next_image()
+        else:
+            self.controller.previous_image()
+
+        self._display_image()
+
+        self._reset_display_values()
+
+    def next_channel(self):
+        self._change_channel(True)
+
+    def previous_channel(self):
+        self._change_channel(False)
+
+    def _change_channel(self, is_next):
+        self.save_parameters()
+        if is_next:
+            self.controller.next_channel()
+        else:
+            self.controller.previous_channel()
+
+        if self.channels_window:
+            self.channels_window.change_channel(self.image_set.last_channel)
+
+        self._display_image()
+
+        self._renew_display_values()
 
     def switch_rgb(self, state):
         """Display rgb image when rgb box is checked, single band otherwise"""
-        current_image = self.image_set.current_image
-        index = self.image_set.channel
         if state == QtCore.Qt.Checked:
             if self.channels_window:
                 self.channels_window.rgb_check_box.setCheckState(
@@ -559,23 +738,20 @@ class PDSViewer(QtWidgets.QMainWindow):
             else:
                 self.update_rgb()
                 try:
-                    datas = [band.data for band in self.rgb]
-                    rgb_data = np.dstack(datas)
-                    # rgb_data = np.dstack(datas)
-                    print(rgb_data.shape)
-                    current_image[index].set_data(rgb_data)
-                    print("bar")
-                    self.next_channel.setEnabled(False)
-                    self.previous_channel.setEnabled(False)
+                    rgb_data = np.stack(
+                        [band.data for band in self.rgb], axis=-1)
+                    self.current_image.set_data(rgb_data)
+                    self.next_channel_btn.setEnabled(False)
+                    self.previous_channel_btn.setEnabled(False)
                 except ValueError:
                     print("Images must be the same size")
                     print("Use the channels button to select the bands")
                     self.rgb_check_box.setCheckState(QtCore.Qt.Unchecked)
         elif state == QtCore.Qt.Unchecked:
             self.update_rgb()
-            current_image[index].set_data(current_image[index].data)
-            self.next_channel.setEnabled(True)
-            self.previous_channel.setEnabled(True)
+            self.current_image.set_data(self.current_image.data)
+            self.next_channel_btn.setEnabled(True)
+            self.previous_channel_btn.setEnabled(True)
             if self.channels_window:
                 self.channels_window.rgb_check_box.setCheckState(
                     QtCore.Qt.Unchecked)
@@ -655,9 +831,11 @@ class PDSViewer(QtWidgets.QMainWindow):
             if first_new_image == len(self.image_set.images):
                 warnings.warn("The image(s) chosen are not PDS compatible")
                 return
-            self.next_image.setEnabled(self.image_set.next_prev_enabled)
-            self.previous_image.setEnabled(self.image_set.next_prev_enabled)
-            self.display_image()
+            self.next_image_btn.setEnabled(
+                self.image_set.next_prev_enabled)
+            self.previous_image_btn.setEnabled(
+                self.image_set.next_prev_enabled)
+            self._display_image()
         else:
             # integrate with logger
             print("No file selected!")
@@ -672,107 +850,6 @@ class PDSViewer(QtWidgets.QMainWindow):
         if self.channels_window_pos:
             self.channels_window.move(self.channels_window_pos)
         self.channels_window.show()
-
-    def display_image(self, next_image=False, previous_image=False,
-                      next_channel=False, previous_channel=False):
-        """Display the current image and/or label"""
-        last_channel = self.image_set.channel
-
-        # Switch image and save parameters of previous image
-        if next_image:
-            self.save_parameters()
-            self.image_set.next()
-            if not self.channels_window_is_open:
-                self.channels_window = None
-        elif previous_image:
-            self.save_parameters()
-            self.image_set.previous()
-            if not self.channels_window_is_open:
-                self.channels_window = None
-        elif next_channel:
-            self.save_parameters()
-            self.image_set.next_channel()
-            if self.channels_window:
-                self.channels_window.change_channel(last_channel)
-        elif previous_channel:
-            self.save_parameters()
-            self.image_set.previous_channel()
-            if self.channels_window:
-                self.channels_window.change_channel(last_channel)
-
-        current_image = self.image_set.current_image[self.image_set.channel]
-
-        state = self.rgb_check_box.checkState()
-        self.switch_rgb(state)
-
-        # Update the channels window with the new image
-        if next_image or previous_image:
-            if self.channels_window:
-                self.update_rgb()
-                self.channels_window.change_image(last_channel)
-
-        # Disable the next/previous channels buttons when there are no channels
-        if len(self.image_set.current_image) < 3:
-            self.next_channel.setEnabled(False)
-            self.previous_channel.setEnabled(False)
-
-        # Display image in viewer
-        if current_image.not_been_displayed:
-            # If it is the first time the image is shown, show with defaults
-            self.pds_view.set_image(current_image)
-            self.restore()
-            self.pds_view.delayed_redraw()
-            current_image.not_been_displayed = False
-            self.histogram.set_data()
-        else:
-            # Set the current image with the images last parameters
-            self.pds_view.set_image(current_image)
-            self.apply_parameters(current_image, self.pds_view)
-            self.pds_view.delayed_redraw()
-            self.histogram.set_data()
-
-        # Update the value box when the channel changes
-        if next_channel or previous_channel:
-            try:
-                data_x = int(self.x_value.text()[3:])
-                data_y = int(self.y_value.text()[3:])
-                self.display_values(self.pds_view, None, data_x, data_y)
-            except ValueError:
-                pass
-        else:
-            # Reset the value boxes
-            self.x_value.setText('X: ????')
-            self.y_value.setText('Y: ????')
-            if current_image.ndim == 3:
-                self.pixel_value.setText('R: ???? G: ???? B: ????')
-            elif current_image.ndim == 2:
-                self.pixel_value.setText('Value: ????')
-
-        if len(self.pds_view.objects) > 1:
-            self.stop_ROI(self.pds_view, None, None, None)
-            self.pds_view.update_canvas()
-        else:
-            self.set_ROI_text(
-                0, 0, current_image.width, current_image.height)
-
-        # Update label
-        self.image_label = current_image.label
-
-        # This checks to see if the label window exists and is open. If so,
-        # this resets the label field so that the label being displayed is the
-        # label for the current product. The label does not reset its position.
-        if self._label_window is not None:
-            pos = self._label_window.pos()
-            label_text = '\n'.join(self.image_label)
-            self._label_window.label_contents.setText(label_text)
-            if self._label_window.is_open:
-                self._label_window.cancel()
-                self._label_window.move(pos)
-                self._label_window.show()
-                self._label_window.is_open = True
-                self._label_window.activateWindow()
-
-        self.setWindowTitle(current_image.image_name)
 
     def save_parameters(self):
         """Save the view parameters on the image"""
@@ -1230,6 +1307,7 @@ def pdsview(inlist=None):
     w = PDSViewer(image_set)
     w.resize(780, 770)
     w.show()
+    w.pds_view.zoom_fit()
     app.setActiveWindow(w)
     sys.exit(app.exec_())
 
