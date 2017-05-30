@@ -189,6 +189,10 @@ class ImageSet(object):
         while index < 0:
             index += len(self.images)
         self._current_image_index = index
+        self.current_image = self.images[index]
+        self._channel = 0
+        for view in self._views:
+            view.display_image()
 
     @property
     def channel(self):
@@ -208,6 +212,8 @@ class ImageSet(object):
             self._channel = new_channel
             if self._channel == number_channels:
                 self._channel = 0
+        for view in self._views:
+            view.display_image()
 
     @property
     def x_value(self):
@@ -446,18 +452,11 @@ class PDSController(object):
         self.model = model
         self.view = view
 
-    def _new_current_image(self):
-        index = self.model.current_image_index
-        self.model.current_image = self.model.images[index]
-        self.model.channel = 0
-
     def next_image(self):
         self.model.current_image_index += 1
-        self._new_current_image()
 
     def previous_image(self):
         self.model.current_image_index -= 1
-        self._new_current_image()
 
     def next_channel(self):
         self.model.channel += 1
@@ -634,13 +633,13 @@ class PDSViewer(QtWidgets.QMainWindow):
         self.pds_view.set_desired_size(100, 100)
 
         if self.image_set.current_image:
-            self._display_image()
+            self.display_image()
 
     @property
     def current_image(self):
         return self.image_set.current_image[self.image_set.channel]
 
-    def _display_image(self):
+    def display_image(self):
         self._set_rgb_state()
         self._update_channels_image()
         self.pds_view.set_image(self.current_image)
@@ -716,44 +715,38 @@ class PDSViewer(QtWidgets.QMainWindow):
                 self._label_window.is_open = True
                 self._label_window.activateWindow()
 
+    def _change_wrapper(image_was_changed):
+        # To be more explicit later
+        channel_was_changed = not image_was_changed
+
+        def decorator(func):
+            @wraps(func)
+            def wrapper(self):
+                self.save_parameters()
+                result = func(self)
+                if image_was_changed:
+                    self._reset_display_values()
+                elif channel_was_changed:
+                    self._renew_display_values()
+                return result
+            return wrapper
+        return decorator
+
+    @_change_wrapper(True)
     def next_image(self):
-        self._change_image(True)
+        self.controller.next_image()
 
+    @_change_wrapper(True)
     def previous_image(self):
-        self._change_image(False)
+        self.controller.previous_image()
 
-    def _change_image(self, is_next):
-        self.save_parameters()
-        if not self.channels_window_is_open:
-            self.channels_window = None
-        if is_next:
-            self.controller.next_image()
-        else:
-            self.controller.previous_image()
-
-        self._display_image()
-
-        self._reset_display_values()
-
+    @_change_wrapper(False)
     def next_channel(self):
-        self._change_channel(True)
+        self.controller.next_channel()
 
+    @_change_wrapper(False)
     def previous_channel(self):
-        self._change_channel(False)
-
-    def _change_channel(self, is_next):
-        self.save_parameters()
-        if is_next:
-            self.controller.next_channel()
-        else:
-            self.controller.previous_channel()
-
-        if self.channels_window:
-            self.channels_window.change_channel(self.image_set.last_channel)
-
-        self._display_image()
-
-        self._renew_display_values()
+        self.controller.previous_channel()
 
     def switch_rgb(self, state):
         """Display rgb image when rgb box is checked, single band otherwise"""
