@@ -33,7 +33,7 @@ setup(
                  'pdsview'},
     include_package_data=True,
     install_requires=[
-        'ginga>=2.6.0',
+        'ginga==2.6.0',
         'planetaryimage>=0.5.0',
         'matplotlib>=1.5.1'
     ],
