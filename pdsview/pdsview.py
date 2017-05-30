@@ -114,12 +114,11 @@ class ImageSet(object):
         Whether the next and previous buttons should be enabled
     """
 
-    __4_hashes = '#' * 4
-    __5_hashes = '#' * 5
-
     def __init__(self, filepaths):
         # Remove any duplicate filepaths and sort the list alpha-numerically.
         filepaths = sorted(list(set(filepaths)))
+
+        self._views = set()
 
         # Create image objects with attributes set in ImageStamp
         # These objects contain the data ginga will use to display the image
@@ -137,6 +136,10 @@ class ImageSet(object):
             self.current_image = self.images[self.current_image_index]
         else:
             self.current_image = None
+
+    def register(self, view):
+        """Register a view with the model"""
+        self._views.add(view)
 
     def create_image_set(self, filepaths):
         rgb = ['R', 'G', 'B']
@@ -209,6 +212,8 @@ class ImageSet(object):
     @x_value.setter
     def x_value(self, new_x_value):
         self._x_value = int(round(new_x_value, 0))
+        for view in self._views:
+            view.set_x_value_text()
 
     @property
     def x_value_text(self):
@@ -221,6 +226,8 @@ class ImageSet(object):
     @y_value.setter
     def y_value(self, new_y_value):
         self._y_value = int(round(new_y_value, 0))
+        for view in self._views:
+            view.set_y_value_text()
 
     @property
     def y_value_text(self):
@@ -237,6 +244,8 @@ class ImageSet(object):
         else:
             _new_pixel_value = [float(new_pixel_value)]
         self._pixel_value = tuple(_new_pixel_value)
+        for view in self._views:
+            view.set_pixel_value_text()
 
     @property
     def pixel_value_text(self):
@@ -474,6 +483,7 @@ class PDSViewer(QtWidgets.QMainWindow):
         super(PDSViewer, self).__init__()
 
         self.image_set = image_set
+        self.image_set.register(self)
         self.controller = PDSController(self.image_set, self)
         self.rgb = []
 
@@ -788,37 +798,46 @@ class PDSViewer(QtWidgets.QMainWindow):
             for band in current_image:
                 self.rgb.append(band)
 
-    def _point_in_image(self, point):
+    def _point_is_in_image(self, point):
         data_x, data_y = point
         height, width = self.current_image.shape[:2]
         in_width = data_x >= -0.5 and data_x <= (width + 0.5)
         in_height = data_y >= -0.5 and data_y <= (height + 0.5)
         return in_width and in_height
 
+    def _set_point_in_image(self, point):
+        data_x, data_y = point
+        image = self.pds_view.get_image()
+        self.controller.new_x_value(data_x)
+        self.controller.new_y_value(data_y)
+        x, y = self.image_set.x_value, self.image_set.y_value
+        self.controller.new_pixel_value(image.get_data_xy(x, y))
+
+    def _set_point_out_of_image(self):
+        x, y = self.pds_view.get_last_data_xy()
+        self.controller.new_x_value(x)
+        self.controller.new_y_value(y)
+        if self.current_image.ndim == 3:
+            self.controller.new_pixel_value((0, 0, 0))
+        elif self.current_image.ndim == 2:
+            self.controller.new_pixel_value(0)
+
+    def set_x_value_text(self):
+        self.x_value.setText(self.image_set.x_value_text)
+
+    def set_y_value_text(self):
+        self.y_value.setText(self.image_set.y_value_text)
+
+    def set_pixel_value_text(self):
+        self.pixel_value.setText(self.image_set.pixel_value_text)
+
     def display_values(self, pds_view, button, data_x, data_y):
         "Display the x, y, and pixel value when the mouse is pressed and moved"
-        current_image = self.image_set.current_image[self.image_set.channel]
-        if self._point_in_image((data_x, data_y)):
-            image = pds_view.get_image()
-            self.controller.new_x_value(data_x)
-            self.controller.new_y_value(data_y)
-            self.x_value.setText(self.image_set.x_value_text)
-            self.y_value.setText(self.image_set.y_value_text)
-            x, y = self.image_set.x_value, self.image_set.y_value
-            self.controller.new_pixel_value(image.get_data_xy(x, y))
-            self.pixel_value.setText(self.image_set.pixel_value_text)
+        point = (data_x, data_y)
+        if self._point_in_image(point):
+            self._set_point_in_image(point)
         else:
-            x = pds_view.get_last_data_xy()[0]
-            y = pds_view.get_last_data_xy()[1]
-            self.controller.new_x_value(x)
-            self.controller.new_y_value(y)
-            self.x_value.setText(self.image_set.x_value_text)
-            self.y_value.setText(self.image_set.y_value_text)
-            if current_image.ndim == 3:
-                self.controller.new_pixel_value((0, 0, 0))
-            elif current_image.ndim == 2:
-                self.controller.new_pixel_value(0)
-            self.pixel_value.setText(self.image_set.pixel_value_text)
+            self._set_point_out_of_image()
 
     def display_label(self):
         """Display the label over the image"""
