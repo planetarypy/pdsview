@@ -766,13 +766,13 @@ class PDSViewer(QtWidgets.QMainWindow):
         # Use logic that if a=b and a=c then b=c
         return all([r_band.shape == band.shape for band in self.rgb])
 
-    def display_rgb_image(self):
+    def _display_rgb_image(self):
         rgb_image = self.create_rgb_image()
         self.current_image.set_data(rgb_image)
         self.next_channel_btn.setEnabled(False)
         self.previous_channel_btn.setEnabled(False)
 
-    def undo_display_rgb_image(self):
+    def _undo_display_rgb_image(self):
         self.update_rgb()
         self.current_image.set_data(self.current_image.data)
         self.next_channel_btn.setEnabled(True)
