@@ -12,7 +12,7 @@ class ChannelsDialog(QtWidgets.QDialog):
         images = main_window.image_set.images
         image_names = [image.image_name for sub in images for image in sub]
         self.image_names = image_names
-        rgb_names = [band.image_name for band in main_window.rgb]
+        rgb_names = [band.image_name for band in main_window.image_set.rgb]
 
         # Create display of image names and highlight the current image/channel
         self.image_list = QtWidgets.QTreeWidget()
@@ -129,6 +129,7 @@ class ChannelsDialog(QtWidgets.QDialog):
         """Displays the rgb image when checked, single band otherwise"""
         if state == QtCore.Qt.Checked:
             self.main_window.rgb_check_box.setCheckState(QtCore.Qt.Checked)
+            self.main_window.switch_rgb(state)
             self.create_composite_image()
         elif state == QtCore.Qt.Unchecked:
             self.main_window.rgb_check_box.setCheckState(QtCore.Qt.Unchecked)

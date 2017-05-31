@@ -86,7 +86,7 @@ class ImageStamp(BaseImage):
         self.not_been_displayed = True
 
     def __repr__(self):
-        return self.file_name
+        return self.image_name
 
 
 class ImageSet(object):
@@ -132,6 +132,7 @@ class ImageSet(object):
         self._y_value = 0
         self._pixel_value = (0, )
         self.use_default_text = True
+        self.rgb = []
         if self.images:
             self.current_image = self.images[self.current_image_index]
         else:
@@ -273,11 +274,40 @@ class ImageSet(object):
         self.current_image_index = dipslay_first_new_image
         self.current_image = self.images[self.current_image_index]
 
+    @property
+    def bands_are_composite(self):
+        r_band = self.rgb[0]
+        # Use logic that if a=b and a=c then b=c
+        return all([r_band.data.shape == band.data.shape for band in self.rgb])
+
+    def _create_rgb_image_wrapper(func):
+        @wraps(func)
+        def wrapper(self):
+            if not self.bands_are_composite:
+                raise ValueError(
+                    (
+                        'The bands must all be the same shape in order to' +
+                        'make a composite image'
+                    )
+                )
+            else:
+                return func(self)
+        return wrapper
+
+    @_create_rgb_image_wrapper
+    def create_rgb_image(self):
+        rgb_image = np.stack(
+            [band.data for band in self.rgb],
+            axis=-1
+        )
+        return rgb_image
+
     def ROI_data(self, left, bottom, right, top):
         """Calculate the data in the Region of Interest
 
         Parameters
         ----------
+
         left : float
             The x coordinate value of the left side of the Region of Interest
         bottom : float
@@ -472,6 +502,29 @@ class PDSController(object):
     def new_pixel_value(self, new_pixel_value):
         self.model.pixel_value = new_pixel_value
 
+    def _populate_rgb(self, image_index):
+        rgb = []
+        number_of_images = len(self.model.images)
+        while len(rgb) < 3:
+            for band in self.model.images[image_index]:
+                rgb.append(band)
+                if len(rgb) == 3:
+                    break
+            at_end_of_image_list = image_index == number_of_images
+            image_index = 0 if at_end_of_image_list else image_index + 1
+        return rgb
+
+    def update_rgb(self):
+        """Update the rgb list to have the 3 channels or the next 3 images"""
+        self.model.rgb = []
+        current_image = self.model.current_image
+        image_is_not_rgb = len(current_image) < 3
+        if image_is_not_rgb:
+            self.model.rgb = self._populate_rgb(self.model.current_image_index)
+        else:
+            for band in current_image:
+                self.model.rgb.append(band)
+
 
 class PDSViewer(QtWidgets.QMainWindow):
     """A display of a single image with the option to view other images
@@ -487,7 +540,6 @@ class PDSViewer(QtWidgets.QMainWindow):
         self.image_set = image_set
         self.image_set.register(self)
         self.controller = PDSController(self.image_set, self)
-        self.rgb = []
 
         # Set the sub window names here. This implementation will help prevent
         # the main window from spawning duplicate children. Even if the
@@ -641,6 +693,7 @@ class PDSViewer(QtWidgets.QMainWindow):
         return self.image_set.current_image[self.image_set.channel]
 
     def display_image(self):
+        self.controller.update_rgb()
         self._set_rgb_state()
         self._update_channels_image()
         self.pds_view.set_image(self.current_image)
@@ -675,7 +728,6 @@ class PDSViewer(QtWidgets.QMainWindow):
 
     def _update_channels_image(self):
         if self.channels_window:
-            self.update_rgb()
             self.channels_window.change_image(self.image_set.last_channel)
 
     def _set_rgb_state(self):
@@ -756,27 +808,17 @@ class PDSViewer(QtWidgets.QMainWindow):
 
     # Create and Display RGB image when RGB checkbox is checked
 
-    def create_rgb_image(self):
-        rgb_image = np.stack([band.data for band in self.rgb], axis=-1)
-        return rgb_image
-
-    @property
-    def bands_are_composite(self):
-        r_band = self.rgb[0]
-        # Use logic that if a=b and a=c then b=c
-        return all([r_band.shape == band.shape for band in self.rgb])
-
-    def _display_rgb_image(self):
-        rgb_image = self.create_rgb_image()
+    def display_rgb_image(self):
+        rgb_image = self.image_set.create_rgb_image()
         self.current_image.set_data(rgb_image)
         self.next_channel_btn.setEnabled(False)
         self.previous_channel_btn.setEnabled(False)
 
     def _undo_display_rgb_image(self):
-        self.update_rgb()
         self.current_image.set_data(self.current_image.data)
-        self.next_channel_btn.setEnabled(True)
-        self.previous_channel_btn.setEnabled(True)
+        if len(self.image_set.current_image) == 3:
+            self.next_channel_btn.setEnabled(True)
+            self.previous_channel_btn.setEnabled(True)
         if self.channels_window:
             self.channels_window.rgb_check_box.setCheckState(
                 QtCore.Qt.Unchecked)
@@ -788,35 +830,19 @@ class PDSViewer(QtWidgets.QMainWindow):
                 self.channels_window.rgb_check_box.setCheckState(
                     QtCore.Qt.Checked)
             else:
-                self.update_rgb()
-                if self.bands_are_composite:
+                if self.image_set.bands_are_composite:
                     self.display_rgb_image()
                 else:
                     print("Images must be the same size")
                     print("Use the channels button to select the bands")
                     self.rgb_check_box.setCheckState(QtCore.Qt.Unchecked)
         elif state == QtCore.Qt.Unchecked:
-            self.undo_display_rgb_image()
+            self._undo_display_rgb_image()
         if len(self.pds_view.objects) >= 1:
             self._refresh_ROI_text()
 
-    def update_rgb(self):
-        """Update the rgb list to have the 3 channels or the next 3 images"""
-        self.rgb = []
-        current_image = self.image_set.current_image
-        if len(current_image) < 3:
-            image_index = self.image_set.current_image_index
-            while len(self.rgb) < 3:
-                for image in self.image_set.images[image_index]:
-                    self.rgb.append(image)
-                    if len(self.rgb) == 3:
-                        break
-                image_index += 1
-                if image_index == len(self.image_set.images):
-                    image_index = 0
-        else:
-            for band in current_image:
-                self.rgb.append(band)
+        if self.pds_view.get_image() is not None:
+            self.histogram.set_data()
 
     def _point_is_in_image(self, point):
         data_x, data_y = point
