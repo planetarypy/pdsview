@@ -662,9 +662,12 @@ class PDSViewer(QtWidgets.QMainWindow):
 
         self.setWindowTitle(self.current_image.image_name)
 
+    def _refresh_ROI_text(self):
+        self.stop_ROI(self.pds_view, None, None, None)
+
     def _reset_ROI(self):
         if len(self.pds_view.objects) > 1:
-            self.stop_ROI(self.pds_view, None, None, None)
+            self._refresh_ROI_text()
             self.pds_view.update_canvas()
         else:
             self.set_ROI_text(
@@ -751,6 +754,33 @@ class PDSViewer(QtWidgets.QMainWindow):
     def previous_channel(self):
         self.controller.previous_channel()
 
+    # Create and Display RGB image when RGB checkbox is checked
+
+    def create_rgb_image(self):
+        rgb_image = np.stack([band.data for band in self.rgb], axis=-1)
+        return rgb_image
+
+    @property
+    def bands_are_composite(self):
+        r_band = self.rgb[0]
+        # Use logic that if a=b and a=c then b=c
+        return all([r_band.shape == band.shape for band in self.rgb])
+
+    def display_rgb_image(self):
+        rgb_image = self.create_rgb_image()
+        self.current_image.set_data(rgb_image)
+        self.next_channel_btn.setEnabled(False)
+        self.previous_channel_btn.setEnabled(False)
+
+    def undo_display_rgb_image(self):
+        self.update_rgb()
+        self.current_image.set_data(self.current_image.data)
+        self.next_channel_btn.setEnabled(True)
+        self.previous_channel_btn.setEnabled(True)
+        if self.channels_window:
+            self.channels_window.rgb_check_box.setCheckState(
+                QtCore.Qt.Unchecked)
+
     def switch_rgb(self, state):
         """Display rgb image when rgb box is checked, single band otherwise"""
         if state == QtCore.Qt.Checked:
@@ -759,26 +789,16 @@ class PDSViewer(QtWidgets.QMainWindow):
                     QtCore.Qt.Checked)
             else:
                 self.update_rgb()
-                try:
-                    rgb_data = np.stack(
-                        [band.data for band in self.rgb], axis=-1)
-                    self.current_image.set_data(rgb_data)
-                    self.next_channel_btn.setEnabled(False)
-                    self.previous_channel_btn.setEnabled(False)
-                except ValueError:
+                if self.bands_are_composite:
+                    self.display_rgb_image()
+                else:
                     print("Images must be the same size")
                     print("Use the channels button to select the bands")
                     self.rgb_check_box.setCheckState(QtCore.Qt.Unchecked)
         elif state == QtCore.Qt.Unchecked:
-            self.update_rgb()
-            self.current_image.set_data(self.current_image.data)
-            self.next_channel_btn.setEnabled(True)
-            self.previous_channel_btn.setEnabled(True)
-            if self.channels_window:
-                self.channels_window.rgb_check_box.setCheckState(
-                    QtCore.Qt.Unchecked)
+            self.undo_display_rgb_image()
         if len(self.pds_view.objects) >= 1:
-            self.stop_ROI(self.pds_view, None, None, None)
+            self._refresh_ROI_text()
 
     def update_rgb(self):
         """Update the rgb list to have the 3 channels or the next 3 images"""
