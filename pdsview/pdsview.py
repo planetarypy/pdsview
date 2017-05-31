@@ -510,7 +510,7 @@ class PDSController(object):
                 rgb.append(band)
                 if len(rgb) == 3:
                     break
-            at_end_of_image_list = image_index == number_of_images
+            at_end_of_image_list = image_index == (number_of_images - 1)
             image_index = 0 if at_end_of_image_list else image_index + 1
         return rgb
 
@@ -805,8 +805,6 @@ class PDSViewer(QtWidgets.QMainWindow):
     @_change_wrapper(False)
     def previous_channel(self):
         self.controller.previous_channel()
-
-    # Create and Display RGB image when RGB checkbox is checked
 
     def display_rgb_image(self):
         rgb_image = self.image_set.create_rgb_image()
@@ -1236,7 +1234,7 @@ class PDSViewer(QtWidgets.QMainWindow):
             left, bottom, right, top)
         # Calculate the number of pixels in the ROI
         ROI_pixels = self.image_set.ROI_pixels(left, bottom, right, top)
-        self.pixels.setText('#Pixels: %s' % (str(ROI_pixels)))
+        self.pixels.setText('#Pixels: %d' % (ROI_pixels))
         if data.ndim == 2:
             # 2 band image is a gray scale image
             self.set_ROI_gray_text(data)
@@ -1264,11 +1262,11 @@ class PDSViewer(QtWidgets.QMainWindow):
         ROI_median = self.image_set.ROI_median(data=data)
         ROI_min = self.image_set.ROI_min(data=data)
         ROI_max = self.image_set.ROI_max(data=data)
-        self.std_dev.setText('Std Dev: %s' % (str(ROI_std_dev)))
-        self.mean.setText('Mean: %s' % (str(ROI_mean)))
-        self.median.setText('Median: %s' % (str(ROI_median)))
-        self.min.setText('Min: %s' % (str(ROI_min)))
-        self.max.setText('Max: %s' % (str(ROI_max)))
+        self.std_dev.setText('Std Dev: %.6f' % (ROI_std_dev))
+        self.mean.setText('Mean: %.4f' % (ROI_mean))
+        self.median.setText('Median: %.1f' % (ROI_median))
+        self.min.setText('Min: %d' % (ROI_min))
+        self.max.setText('Max: %d' % (ROI_max))
 
     def set_ROI_RGB_text(self, data):
         """Set the values for the ROI in the text boxes for a RGB image
@@ -1286,23 +1284,16 @@ class PDSViewer(QtWidgets.QMainWindow):
         ROI_median = [calc.ROI_median(data=data[:, :, n]) for n in range(3)]
         ROI_max = [int(calc.ROI_max(data=data[:, :, n])) for n in range(3)]
         ROI_min = [int(calc.ROI_min(data=data[:, :, n])) for n in range(3)]
-        for item in ROI_stdev, ROI_mean, ROI_median, ROI_min, ROI_max:
-            str(item)
         self.std_dev.setText(
-            'Std Dev: R: %s G: %s B: %s' % (ROI_stdev[0], ROI_stdev[1],
-                                            ROI_stdev[2]))
+            'Std Dev: R: %.6f G: %.6f B: %.6f' % (tuple(ROI_stdev)))
         self.mean.setText(
-            'Mean: R: %s G: %s B: %s' % (ROI_mean[0], ROI_mean[1],
-                                         ROI_mean[2]))
+            'Mean: R: %s G: %s B: %s' % (tuple(ROI_mean)))
         self.median.setText(
-            'Median: R: %s G: %s B: %s' % (ROI_median[0], ROI_median[1],
-                                           ROI_median[2]))
+            'Median: R: %s G: %s B: %s' % (tuple(ROI_median)))
         self.max.setText(
-            'Max: R: %s G: %s B: %s' % (ROI_max[0], ROI_max[1],
-                                        ROI_max[2]))
+            'Max: R: %s G: %s B: %s' % (tuple(ROI_max)))
         self.min.setText(
-            'Min: R: %s G: %s B: %s' % (ROI_min[0], ROI_min[1],
-                                        ROI_min[2]))
+            'Min: R: %s G: %s B: %s' % (tuple(ROI_min)))
 
     def drop_file(self, pdsimage, paths):
         """This function is not yet supported"""
