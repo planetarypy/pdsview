@@ -18,7 +18,7 @@ import math
 import numpy as np
 import warnings
 
-from .channels_dialog import ChannelsDialog
+from .channels_dialog import ChannelsDialog, ChannelsDialogModel
 from .histogram import HistogramWidget, HistogramModel
 
 STD_FORMAT = '%(asctime)s | %(levelname)1.1s | %(filename)s:%(lineno)d (%(funcName)s) | %(message)s'
@@ -728,7 +728,7 @@ class PDSViewer(QtWidgets.QMainWindow):
 
     def _update_channels_image(self):
         if self.channels_window:
-            self.channels_window.change_image(self.image_set.last_channel)
+            self.channels_window.change_image()
 
     def _set_rgb_state(self):
         state = self.rgb_check_box.checkState()
@@ -919,9 +919,8 @@ class PDSViewer(QtWidgets.QMainWindow):
 
     def channels_dialog(self):
         """Display the channels dialog box"""
-        current_image = self.image_set.current_image[self.image_set.channel]
         if not self.channels_window:
-            self.channels_window = ChannelsDialog(current_image, self)
+            self.channels_window = ChannelsDialog(ChannelsDialogModel(self))
         self.channels_window_is_open = True
         if self.channels_window_pos:
             self.channels_window.move(self.channels_window_pos)
