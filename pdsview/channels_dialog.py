@@ -40,11 +40,6 @@ class ChannelsDialogModel(object):
     def alphas(self):
         return [model.alpha_value / 100. for model in self.rgb_models]
 
-    def update_current_index(self):
-        self.current_index = self.image_names.index(
-            self.main_window.current_image.image_name
-        )
-
     def update_image(self):
         for view in self._views:
             view.display_composite_image()
@@ -63,6 +58,11 @@ class ChannelsDialogController(object):
     def __init__(self, model, view):
         self.model = model
         self.view = view
+
+    def update_current_index(self):
+        self.model.current_index = self.model.image_names.index(
+            self.model.main_window.current_image.image_name
+        )
 
     def update_menu_indices(self):
         self.model.menu_indices = [
@@ -182,7 +182,7 @@ class ChannelsDialog(QtWidgets.QDialog):
     def change_image(self):
         """Change the menu and image list when the image is changed"""
         self.current_item.setSelected(False)
-        self.model.update_current_index()
+        self.controller.update_current_index()
         self.current_item.setSelected(True)
         self.update_menus_current_item()
         self.display_composite_image()
