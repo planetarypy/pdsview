@@ -3,8 +3,8 @@ from qtpy import QtWidgets, QtCore
 
 class BandWidgetModel(object):
 
-    max_alpha = 100
-    min_alpha = 0
+    max_alpha = 100.
+    min_alpha = 0.
 
     def __init__(self, channels_model, rgb_index, name):
         self._views = set()
@@ -33,14 +33,14 @@ class BandWidgetModel(object):
 
         self.channels_model.update_image()
 
+    @property
+    def selected_image(self):
+        return self.channels_model.images[self._index]
+
     def update_index(self, new_index):
         self._index = new_index
 
         self.channels_model.rgb[self.rgb_index] = self.selected_image
-
-    @property
-    def selected_image(self):
-        return self.channels_model.images[self._index]
 
     @property
     def alpha_value(self):
@@ -75,7 +75,7 @@ class BandWidgetController(object):
         elif new_alpha_value < self.model.min_alpha:
             new_alpha_value = self.model.min_alpha
 
-        self.model.alpha_value = new_alpha_value
+        self.model.alpha_value = float(new_alpha_value)
 
 
 class BandWidget(QtWidgets.QWidget):
@@ -88,9 +88,9 @@ class BandWidget(QtWidgets.QWidget):
         self.menu = QtWidgets.QComboBox()
         label = QtWidgets.QLabel(model.name)
         box = QtWidgets.QHBoxLayout()
-        self.add_text_to_menu(
-            self.menu, model.channels_model.image_names)
-        self.create_color_layout(label, self.menu, box)
+        self.add_text_to_menu(model.channels_model.image_names)
+        box.addWidget(label)
+        box.addWidget(self.menu)
         self.menu.currentIndexChanged.connect(self.image_selected)
         self.alpha_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.alpha_value = QtWidgets.QLabel()
@@ -108,20 +108,14 @@ class BandWidget(QtWidgets.QWidget):
 
         self.setLayout(self.layout)
 
-    def add_text_to_menu(self, menu, names):
+    def add_text_to_menu(self, names):
         """Adds the images to the menu & sets the current item in the menu"""
         for name in names:
-            menu.addItem(name)
+            self.menu.addItem(name)
         self.set_current_index()
-        # menu.activated[int].connect(self.create_composite_image)
 
     def set_current_index(self):
         self.menu.setCurrentIndex(self.model.index)
-
-    def create_color_layout(self, label, menu, box):
-        """Set the menu and its label next to each other"""
-        box.addWidget(label)
-        box.addWidget(menu)
 
     def create_slider_layout(self, slider, value, label, slider_container,
                              value_container, container):
