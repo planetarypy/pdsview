@@ -338,7 +338,7 @@ class TestPDSViewer(object):
         assert not self.viewer.channels_window_is_open
         assert self.viewer.channels_window_pos is None
         assert isinstance(
-            self.viewer.pds_view, ImageViewCanvas)
+            self.viewer.view_canvas, ImageViewCanvas)
         assert isinstance(
             self.viewer.next_image_btn, QtWidgets.QPushButton)
         assert isinstance(
@@ -507,21 +507,21 @@ class TestPDSViewer(object):
         # Change parameters
         image1.sarr[0] = 42
         image1.sarr[255] = 13
-        self.viewer.pds_view.get_rgbmap().set_sarr(image1.sarr)
-        # self.viewer.pds_view.zoom_to(3)
-        self.viewer.pds_view.rotate(45)
-        self.viewer.pds_view.transform(False, True, False)
-        self.viewer.pds_view.cut_levels(24, 95)
+        self.viewer.view_canvas.get_rgbmap().set_sarr(image1.sarr)
+        # self.viewer.view_canvas.zoom_to(3)
+        self.viewer.view_canvas.rotate(45)
+        self.viewer.view_canvas.transform(False, True, False)
+        self.viewer.view_canvas.cut_levels(24, 95)
         qtbot.mouseClick(self.viewer.next_image_btn, QtCore.Qt.LeftButton)
         # Test the second image parameters are None by defualt
         image2 = self.viewer.current_image
         # Test the view was reset to defualt paramters for the image
-        assert self.viewer.pds_view.get_rgbmap().get_sarr()[0] == 0
-        assert self.viewer.pds_view.get_rgbmap().get_sarr()[255] == 255
-        # assert self.viewer.pds_view.get_zoom() == 1.0
-        assert self.viewer.pds_view.get_rotation() == 0.0
-        assert self.viewer.pds_view.get_transforms() == (False, False, False)
-        assert self.viewer.pds_view.get_cut_levels() == (22, 26)
+        assert self.viewer.view_canvas.get_rgbmap().get_sarr()[0] == 0
+        assert self.viewer.view_canvas.get_rgbmap().get_sarr()[255] == 255
+        # assert self.viewer.view_canvas.get_zoom() == 1.0
+        assert self.viewer.view_canvas.get_rotation() == 0.0
+        assert self.viewer.view_canvas.get_transforms() == (False, False, False)
+        assert self.viewer.view_canvas.get_cut_levels() == (22, 26)
         # Test changing back to the first image maintains image1's parameters
         qtbot.mouseClick(self.viewer.previous_image_btn, QtCore.Qt.LeftButton)
         image1 = self.viewer.image_set.current_image[0]
@@ -544,11 +544,11 @@ class TestPDSViewer(object):
         image1 = self.viewer.image_set.current_image[0]
         image1.sarr[0] = 42
         image1.sarr[255] = 13
-        self.viewer.pds_view.get_rgbmap().set_sarr(image1.sarr)
-        # self.viewer.pds_view.zoom_to(3)
-        self.viewer.pds_view.rotate(45)
-        self.viewer.pds_view.transform(False, True, False)
-        self.viewer.pds_view.cut_levels(24, 95)
+        self.viewer.view_canvas.get_rgbmap().set_sarr(image1.sarr)
+        # self.viewer.view_canvas.zoom_to(3)
+        self.viewer.view_canvas.rotate(45)
+        self.viewer.view_canvas.transform(False, True, False)
+        self.viewer.view_canvas.cut_levels(24, 95)
         assert image1.sarr[0] == 42
         assert image1.sarr[255] == 13
         # assert image1.zoom == 3.0

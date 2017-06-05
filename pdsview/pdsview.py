@@ -550,22 +550,22 @@ class PDSViewer(QtWidgets.QMainWindow):
         self.channels_window_is_open = False
         self.channels_window_pos = None
 
-        self.pds_view = ImageViewCanvas(render='widget')
-        self.pds_view.set_autocut_params('zscale')
-        self.pds_view.enable_autozoom('override')
-        self.pds_view.enable_autocuts('override')
-        self.pds_view.set_callback('drag-drop', self.drop_file)
-        self.pds_view.set_bg(0.5, 0.5, 0.5)
-        self.pds_view.ui_setActive(True)
-        self.pds_view.get_bindings().enable_all(True)
+        self.view_canvas = ImageViewCanvas(render='widget')
+        self.view_canvas.set_autocut_params('zscale')
+        self.view_canvas.enable_autozoom('override')
+        self.view_canvas.enable_autocuts('override')
+        self.view_canvas.set_callback('drag-drop', self.drop_file)
+        self.view_canvas.set_bg(0.5, 0.5, 0.5)
+        self.view_canvas.ui_setActive(True)
+        self.view_canvas.get_bindings().enable_all(True)
         # Activate left mouse click to display values
-        self.pds_view.set_callback('cursor-down', self.display_values)
+        self.view_canvas.set_callback('cursor-down', self.display_values)
         # Activate click and drag to update values
-        self.pds_view.set_callback('cursor-move', self.display_values)
-        self.pds_view.set_callback('draw-down', self.start_ROI)
-        self.pds_view.set_callback('draw-up', self.stop_ROI)
-        self.pds_view.enable_draw(True)
-        self.pds_view.set_drawtype('rectangle')
+        self.view_canvas.set_callback('cursor-move', self.display_values)
+        self.view_canvas.set_callback('draw-down', self.start_ROI)
+        self.view_canvas.set_callback('draw-up', self.stop_ROI)
+        self.view_canvas.enable_draw(True)
+        self.view_canvas.set_drawtype('rectangle')
 
         main_layout = QtWidgets.QGridLayout()
 
@@ -629,7 +629,7 @@ class PDSViewer(QtWidgets.QMainWindow):
             second_box.setMinimumSize(main_box.sizeHint())
             second_box.setMaximumSize(main_box.sizeHint())
 
-        self.histogram = HistogramModel(self.pds_view, bins=100)
+        self.histogram = HistogramModel(self.view_canvas, bins=100)
         self.histogram_widget = HistogramWidget(self.histogram)
         min_width = self.histogram_widget.histogram.width()
         for widget in (open_file, self.next_image_btn, self.previous_image_btn,
@@ -672,7 +672,7 @@ class PDSViewer(QtWidgets.QMainWindow):
         x_y_layout.addWidget(self.y_value_lbl, 0, 1)
         main_layout.addLayout(x_y_layout, 7, 0)
         main_layout.addWidget(self.pixel_value_lbl, 8, 0, 1, 2)
-        main_layout.addWidget(self.pds_view.get_widget(), 2, 2, 9, 4)
+        main_layout.addWidget(self.view_canvas.get_widget(), 2, 2, 9, 4)
 
         main_layout.setRowStretch(9, 1)
         main_layout.setColumnStretch(5, 1)
@@ -681,7 +681,7 @@ class PDSViewer(QtWidgets.QMainWindow):
         self.setCentralWidget(vw)
         vw.setLayout(main_layout)
 
-        self.pds_view.set_desired_size(100, 100)
+        self.view_canvas.set_desired_size(100, 100)
 
         if self.image_set.current_image:
             self.display_image()
@@ -695,12 +695,12 @@ class PDSViewer(QtWidgets.QMainWindow):
         self.controller.update_rgb()
         self._set_rgb_state()
         self._update_channels_image()
-        self.pds_view.set_image(self.current_image)
+        self.view_canvas.set_image(self.current_image)
         if self.current_image.not_been_displayed:
             self.restore()
         else:
-            self.apply_parameters(self.current_image, self.pds_view)
-        self.pds_view.delayed_redraw()
+            self.apply_parameters(self.current_image, self.view_canvas)
+        self.view_canvas.delayed_redraw()
 
         self.current_image.not_been_displayed = False
 
@@ -715,12 +715,12 @@ class PDSViewer(QtWidgets.QMainWindow):
         self.setWindowTitle(self.current_image.image_name)
 
     def _refresh_ROI_text(self):
-        self.stop_ROI(self.pds_view, None, None, None)
+        self.stop_ROI(self.view_canvas, None, None, None)
 
     def _reset_ROI(self):
-        if len(self.pds_view.objects) > 1:
+        if len(self.view_canvas.objects) > 1:
             self._refresh_ROI_text()
-            self.pds_view.update_canvas()
+            self.view_canvas.update_canvas()
         else:
             self.set_ROI_text(
                 0, 0, self.current_image.width, self.current_image.height)
@@ -742,7 +742,7 @@ class PDSViewer(QtWidgets.QMainWindow):
         try:
             data_x = self.image_set.x_value
             data_y = self.image_set.y_value
-            self.display_values(self.pds_view, None, data_x, data_y)
+            self.display_values(self.view_canvas, None, data_x, data_y)
         except ValueError:
             pass
 
@@ -817,10 +817,10 @@ class PDSViewer(QtWidgets.QMainWindow):
                     self.rgb_check_box.setCheckState(QtCore.Qt.Unchecked)
         elif state == QtCore.Qt.Unchecked:
             self._undo_display_rgb_image()
-        if len(self.pds_view.objects) >= 1:
+        if len(self.view_canvas.objects) >= 1:
             self._refresh_ROI_text()
 
-        if self.pds_view.get_image() is not None:
+        if self.view_canvas.get_image() is not None:
             self.histogram.set_data()
 
     def _point_is_in_image(self, point):
@@ -832,14 +832,14 @@ class PDSViewer(QtWidgets.QMainWindow):
 
     def _set_point_in_image(self, point):
         data_x, data_y = point
-        image = self.pds_view.get_image()
+        image = self.view_canvas.get_image()
         self.controller.new_x_value(data_x)
         self.controller.new_y_value(data_y)
         x, y = self.image_set.x_value, self.image_set.y_value
         self.controller.new_pixel_value(image.get_data_xy(x, y))
 
     def _set_point_out_of_image(self):
-        x, y = self.pds_view.get_last_data_xy()
+        x, y = self.view_canvas.get_last_data_xy()
         self.controller.new_x_value(x)
         self.controller.new_y_value(y)
         if self.current_image.ndim == 3:
@@ -856,7 +856,7 @@ class PDSViewer(QtWidgets.QMainWindow):
     def set_pixel_value_text(self):
         self.pixel_value_lbl.setText(self.image_set.pixel_value_text)
 
-    def display_values(self, pds_view, button, data_x, data_y):
+    def display_values(self, view_canvas, button, data_x, data_y):
         "Display the x, y, and pixel value when the mouse is pressed and moved"
         point = (data_x, data_y)
         if self._point_is_in_image(point):
@@ -928,11 +928,11 @@ class PDSViewer(QtWidgets.QMainWindow):
     def save_parameters(self):
         """Save the view parameters on the image"""
         last_image = self.image_set.current_image[self.image_set.channel]
-        last_image.sarr = self.pds_view.get_rgbmap().get_sarr()
-        last_image.zoom = self.pds_view.get_zoom()
-        last_image.rotation = self.pds_view.get_rotation()
-        last_image.transforms = self.pds_view.get_transforms()
-        last_image.cuts = self.pds_view.get_cut_levels()
+        last_image.sarr = self.view_canvas.get_rgbmap().get_sarr()
+        last_image.zoom = self.view_canvas.get_zoom()
+        last_image.rotation = self.view_canvas.get_rotation()
+        last_image.transforms = self.view_canvas.get_transforms()
+        last_image.cuts = self.view_canvas.get_cut_levels()
 
     def apply_parameters(self, image, view):
         """Display image with the images parameters"""
@@ -963,18 +963,18 @@ class PDSViewer(QtWidgets.QMainWindow):
 
     def restore(self):
         """Restore image to the default settings"""
-        self.pds_view.get_rgbmap().reset_sarr()
-        self.pds_view.enable_autocuts('on')
-        self.pds_view.auto_levels()
-        self.pds_view.enable_autocuts('override')
-        self.pds_view.rotate(0.0)
+        self.view_canvas.get_rgbmap().reset_sarr()
+        self.view_canvas.enable_autocuts('on')
+        self.view_canvas.auto_levels()
+        self.view_canvas.enable_autocuts('override')
+        self.view_canvas.rotate(0.0)
         # The default transform/rotation of the image will be image specific so
         # transform bools will change in the future
-        self.pds_view.transform(False, False, False)
-        self.pds_view.zoom_fit()
+        self.view_canvas.transform(False, False, False)
+        self.view_canvas.zoom_fit()
         self.histogram.restore()
 
-    def start_ROI(self, pds_view, button, data_x, data_y):
+    def start_ROI(self, view_canvas, button, data_x, data_y):
         """Ensure only one Region of Interest (ROI) exists at a time
 
         Note
@@ -985,7 +985,7 @@ class PDSViewer(QtWidgets.QMainWindow):
 
         Parameters
         ----------
-        pds_view : ImageViewCanvas object
+        view_canvas : ImageViewCanvas object
             The view that displays the image
         button : Qt.RightButton
             The right mouse button
@@ -996,10 +996,10 @@ class PDSViewer(QtWidgets.QMainWindow):
 
         """
 
-        if len(pds_view.objects) > 1:
+        if len(view_canvas.objects) > 1:
             self.delete_ROI()
 
-    def stop_ROI(self, pds_view, button, data_x, data_y):
+    def stop_ROI(self, view_canvas, button, data_x, data_y):
         """Create a Region of Interest (ROI)
 
         When drawing stops (release of the right mouse button), the ROI border
@@ -1010,7 +1010,7 @@ class PDSViewer(QtWidgets.QMainWindow):
         Note
         ----
         This method is called when the right mouse button is released. Even
-        though only the pds_view argument is used, they are all necessary to
+        though only the view_canvas argument is used, they are all necessary to
         catch the right mouse button release event.
 
         Parameters
@@ -1021,11 +1021,11 @@ class PDSViewer(QtWidgets.QMainWindow):
 
         # If there are no draw objects, stop
         current_image = self.image_set.current_image[self.image_set.channel]
-        if len(pds_view.objects) == 1:
+        if len(view_canvas.objects) == 1:
             self.set_ROI_text(0, 0, current_image.width, current_image.height)
             return
 
-        draw_obj = pds_view.objects[1]
+        draw_obj = view_canvas.objects[1]
 
         # Retrieve the left, right, top, & bottom x and y values
         roi = self.left_right_bottom_top(
@@ -1048,8 +1048,7 @@ class PDSViewer(QtWidgets.QMainWindow):
 
         # If the entire ROI is outside the ROI, delete the ROI and set the ROI
         # to the whole image
-        if(not left_in_image or not right_in_image or not top_in_image
-           or not bot_in_image):
+        if not any(left_in_image, right_in_image, top_in_image, bot_in_image):
             self.set_ROI_text(0, 0, current_image.width, current_image.height)
             self.delete_ROI()
             return
@@ -1205,7 +1204,7 @@ class PDSViewer(QtWidgets.QMainWindow):
     def delete_ROI(self):
         """Deletes the Region of Interest"""
         try:
-            self.pds_view.deleteObject(self.pds_view.objects[1])
+            self.view_canvas.deleteObject(self.view_canvas.objects[1])
         except:
             return
 
@@ -1374,7 +1373,7 @@ def pdsview(inlist=None):
     w = PDSViewer(image_set)
     w.resize(780, 770)
     w.show()
-    w.pds_view.zoom_fit()
+    w.view_canvas.zoom_fit()
     app.setActiveWindow(w)
     sys.exit(app.exec_())
 

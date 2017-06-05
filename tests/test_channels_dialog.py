@@ -180,7 +180,8 @@ class TestChannelsDialog(object):
         def check_currentIndex():
             for widget, index in zip(widgets, self.model.menu_indices):
                 assert widget.menu.currentIndex() == index
-        assert self.model.menu_indices == [0, 1, 2]
+        self.model.menu_indices = [0, 1, 2]
+        self.dialog.set_menus_index()
         check_currentIndex()
         r, g, b = 4, 0, 2
         self.model.menu_indices = [r, g, b]
