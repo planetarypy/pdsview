@@ -142,13 +142,13 @@ class TestChannelsDialog(object):
 
     @add_widget_wrapper
     def test_current_item(self, qtbot):
-        assert self.dialog.current_item == self.dialog.items[0]
+        assert self.dialog.current_item.text(0) == self.dialog.items[0].text(0)
         qtbot.mouseClick(self.window.next_image_btn, QtCore.Qt.LeftButton)
         assert self.model.current_index == 1
-        assert self.dialog.current_item == self.dialog.items[1]
+        assert self.dialog.current_item.text(0) == self.dialog.items[1].text(0)
         qtbot.mouseClick(self.window.previous_image_btn, QtCore.Qt.LeftButton)
         assert self.model.current_index == 0
-        assert self.dialog.current_item == self.dialog.items[0]
+        assert self.dialog.current_item.text(0) == self.dialog.items[0].text(0)
 
     # TODO: CANNOT TEST RGB UNTIL AN RGB IMAGE IS ADDED TO THE TEST DATA
     # @add_widget_wrapper
