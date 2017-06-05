@@ -123,11 +123,10 @@ class ImageSet(object):
         # Create image objects with attributes set in ImageStamp
         # These objects contain the data ginga will use to display the image
         self.images = []
-        self.file_dict = {}
         self.create_image_set(filepaths)
         self._current_image_index = 0
         self._channel = 0
-        self._last_channel = None
+        # self._last_channel = None
         self._x_value = 0
         self._y_value = 0
         self._pixel_value = (0, )
@@ -160,7 +159,7 @@ class ImageSet(object):
                         image = ImageStamp(
                             filepath=filepath, name=name, data_np=data,
                             pds_image=pds_image)
-                        self.file_dict[image.image_name] = image
+                        # self.file_dict[image.image_name] = image
                         channels.append(image)
                     self.images.append(channels)
                 else:
@@ -170,7 +169,7 @@ class ImageSet(object):
                         filepath=filepath, name=name, data_np=data,
                         pds_image=pds_image)
                     self.images.append([image])
-                    self.file_dict[image.image_name] = image
+                    # self.file_dict[image.image_name] = image
             except:
                 warnings.warn(filepath + " cannnot be opened")
 
@@ -199,9 +198,9 @@ class ImageSet(object):
     def channel(self):
         return self._channel
 
-    @property
-    def last_channel(self):
-        return self._last_channel
+    # @property
+    # def last_channel(self):
+    #     return self._last_channel
 
     @channel.setter
     def channel(self, new_channel):
@@ -245,7 +244,7 @@ class ImageSet(object):
 
     @property
     def pixel_value(self):
-        return tuple([round(value, 3) for value in self._pixel_value])
+        return tuple([float(round(value, 3)) for value in self._pixel_value])
 
     @pixel_value.setter
     def pixel_value(self, new_pixel_value):
@@ -270,7 +269,6 @@ class ImageSet(object):
         self.create_image_set(new_files)
         if dipslay_first_new_image == len(self.images):
             return
-        self.enable_next_previous()
         self.current_image_index = dipslay_first_new_image
         self.current_image = self.images[self.current_image_index]
 
@@ -687,6 +685,7 @@ class PDSViewer(QtWidgets.QMainWindow):
 
         if self.image_set.current_image:
             self.display_image()
+            self._reset_display_values()
 
     @property
     def current_image(self):
@@ -754,24 +753,6 @@ class PDSViewer(QtWidgets.QMainWindow):
             self.pixel_value_lbl.setText('R: ???? G: ???? B: ????')
         elif self.current_image.ndim == 2:
             self.pixel_value_lbl.setText('Value: ????')
-
-    def _update_label(self):
-        # Update label
-        self.image_label = self.current_image.label
-
-        # This checks to see if the label window exists and is open. If so,
-        # this resets the label field so that the label being displayed is the
-        # label for the current product. The label does not reset its position.
-        if self._label_window is not None:
-            pos = self._label_window.pos()
-            label_text = '\n'.join(self.image_label)
-            self._label_window.label_contents.setText(label_text)
-            if self._label_window.is_open:
-                self._label_window.cancel()
-                self._label_window.move(pos)
-                self._label_window.show()
-                self._label_window.is_open = True
-                self._label_window.activateWindow()
 
     def _change_wrapper(image_was_changed):
         # To be more explicit later
@@ -892,6 +873,24 @@ class PDSViewer(QtWidgets.QMainWindow):
         self._label_window.is_open = True
         self._label_window.show()
         self._label_window.activateWindow()
+
+    def _update_label(self):
+        # Update label
+        self.image_label = self.current_image.label
+
+        # This checks to see if the label window exists and is open. If so,
+        # this resets the label field so that the label being displayed is the
+        # label for the current product. The label does not reset its position.
+        if self._label_window is not None:
+            pos = self._label_window.pos()
+            label_text = '\n'.join(self.image_label)
+            self._label_window.label_contents.setText(label_text)
+            if self._label_window.is_open:
+                self._label_window.cancel()
+                self._label_window.move(pos)
+                self._label_window.show()
+                self._label_window.is_open = True
+                self._label_window.activateWindow()
 
     def open_file(self):
         """Open a new image file from a file explorer"""
