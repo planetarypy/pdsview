@@ -151,7 +151,7 @@ class HistogramModel(object):
     @property
     def data(self):
         """:class:`ndarray` The current image data"""
-        return self.image_view.get_image().data
+        return self.image_view.get_image().get_data()
 
     def register(self, view):
         """Register a view with the model
