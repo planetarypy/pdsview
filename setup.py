@@ -35,7 +35,8 @@ setup(
     install_requires=[
         'ginga==2.6.0',
         'planetaryimage>=0.5.0',
-        'matplotlib>=1.5.1'
+        'matplotlib>=1.5.1',
+        'QtPy>=1.2.1'
     ],
     license="BSD",
     zip_safe=False,
