@@ -19,7 +19,7 @@ FILE_3 = os.path.join(
 
 test_images = pdsview.ImageSet([FILE_1, FILE_2])
 window = pdsview.PDSViewer(test_images)
-image_view = window.pds_view
+image_view = window.view_canvas
 
 
 def test_model_init():
@@ -32,12 +32,12 @@ def test_model_init():
 
 
 def test_model_image_view():
-    image_view = window.pds_view
+    image_view = window.view_canvas
     model = histogram.HistogramModel(image_view)
     model.image_view == image_view
     model.image_view == model._image_view
     # Test setter method
-    image_view2 = pdsview.PDSViewer(pdsview.ImageSet([FILE_3])).pds_view
+    image_view2 = pdsview.PDSViewer(pdsview.ImageSet([FILE_3])).view_canvas
     model.image_view = image_view2
     assert model.image_view == image_view2
 
@@ -60,7 +60,7 @@ def test_model_cut_high():
     # Test Setting
     model.cut_high = 42
     assert model.cut_high == 42
-    assert model._cut_high== 42
+    assert model._cut_high == 42
     assert model.view_cuts[1] == 42
 
 
