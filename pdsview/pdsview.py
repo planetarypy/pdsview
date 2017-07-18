@@ -4,6 +4,7 @@ import sys
 import os
 import logging
 from functools import wraps
+
 try:
     from . import label
 except ImportError:
@@ -20,6 +21,7 @@ import warnings
 
 from .channels_dialog import ChannelsDialog, ChannelsDialogModel
 from .histogram import HistogramWidget, HistogramModel
+import gzip
 
 STD_FORMAT = '%(asctime)s | %(levelname)1.1s | %(filename)s:%(lineno)d (%(funcName)s) | %(message)s'
 #
@@ -66,7 +68,8 @@ class ImageStamp(BaseImage):
         BaseImage.__init__(self, data_np=data_np, metadata=metadata,
                            logger=logger)
         self.set_data(data_np)
-        with open(filepath, 'rb') as f:
+        _open = gzip.open if filepath.endswith('gz') else open
+        with _open(filepath, 'rb') as f:
             label_array = []
             for lineno, line in enumerate(f):
                 line = line.decode().rstrip()
@@ -129,7 +132,7 @@ class ImageSet(object):
         # self._last_channel = None
         self._x_value = 0
         self._y_value = 0
-        self._pixel_value = (0, )
+        self._pixel_value = (0,)
         self.use_default_text = True
         self.rgb = []
         if self.images:
@@ -290,6 +293,7 @@ class ImageSet(object):
                 )
             else:
                 return func(self)
+
         return wrapper
 
     @_create_rgb_image_wrapper
@@ -474,7 +478,6 @@ class ImageSet(object):
 
 
 class PDSController(object):
-
     def __init__(self, model, view):
         self.model = model
         self.view = view
@@ -600,7 +603,7 @@ class PDSViewer(QtWidgets.QMainWindow):
         self.pixel_value_lbl = QtWidgets.QLabel(
             'R: ######, G: ###### B: ######')
 
-        self.pixels = QtWidgets.QLabel('#Pixels: #######')
+        self.pixels = QtWidgets.QLabel('Pixels: #######')
         self.std_dev = QtWidgets.QLabel(
             'Std Dev: R: ######### G: ######### B: #########')
         self.mean = QtWidgets.QLabel(
@@ -768,7 +771,9 @@ class PDSViewer(QtWidgets.QMainWindow):
                 elif channel_was_changed:
                     self._renew_display_values()
                 return result
+
             return wrapper
+
         return decorator
 
     @_change_wrapper(True)
@@ -1048,7 +1053,7 @@ class PDSViewer(QtWidgets.QMainWindow):
 
         # If the entire ROI is outside the ROI, delete the ROI and set the ROI
         # to the whole image
-        if not any(left_in_image, right_in_image, top_in_image, bot_in_image):
+        if not any((left_in_image, right_in_image, top_in_image, bot_in_image)):
             self.set_ROI_text(0, 0, current_image.width, current_image.height)
             self.delete_ROI()
             return
@@ -1394,6 +1399,6 @@ def cli():
     parser.add_argument(
         'file', nargs='*',
         help="Input filename or glob for files with certain extensions"
-        )
+    )
     args = parser.parse_args()
     pdsview(args.file)
