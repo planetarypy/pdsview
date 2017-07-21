@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from pdsview import pdsview
-from pdsview.histogram import HistogramWidget, HistogramModel
-from pdsview.channels_dialog import ChannelsDialog
 import os
-from planetaryimage import PDS3Image
-import pytest
 
+import pytest
 import numpy as np
 from qtpy import QtWidgets, QtCore
+from planetaryimage import PDS3Image
 from ginga.qtw.ImageViewCanvasQt import ImageViewCanvas
+
+from pdsview import pdsview
+from pdsview.channels_dialog import ChannelsDialog
+from pdsview.histogram import HistogramWidget, HistogramModel
 
 FILE_1 = os.path.join(
     'tests', 'mission_data', '2m132591087cfd1800p2977m2f1.img')
@@ -520,7 +521,9 @@ class TestPDSViewer(object):
         assert self.viewer.view_canvas.get_rgbmap().get_sarr()[255] == 255
         # assert self.viewer.view_canvas.get_zoom() == 1.0
         assert self.viewer.view_canvas.get_rotation() == 0.0
-        assert self.viewer.view_canvas.get_transforms() == (False, False, False)
+        assert self.viewer.view_canvas.get_transforms() == (
+            False, False, False
+        )
         assert self.viewer.view_canvas.get_cut_levels() == (22, 26)
         # Test changing back to the first image maintains image1's parameters
         qtbot.mouseClick(self.viewer.previous_image_btn, QtCore.Qt.LeftButton)

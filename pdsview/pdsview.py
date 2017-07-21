@@ -1,29 +1,27 @@
 #! /usr/bin/env python
 
-import sys
 import os
-import logging
+import sys
+import math
+import argparse
+import warnings
+from glob import glob
 from functools import wraps
+
+import numpy as np
+from qtpy import QtWidgets, QtCore
+from planetaryimage import PDS3Image
+from ginga.BaseImage import BaseImage
+from ginga.qtw.ImageViewCanvasQt import ImageViewCanvas
+
+from .histogram import HistogramWidget, HistogramModel
+from .channels_dialog import ChannelsDialog, ChannelsDialogModel
 try:
     from . import label
 except ImportError:
     from pdsview import label
-from glob import glob
-from qtpy import QtWidgets, QtCore
-from ginga.qtw.ImageViewCanvasQt import ImageViewCanvas
-from ginga.BaseImage import BaseImage
-from planetaryimage import PDS3Image
-import argparse
-import math
-import numpy as np
-import warnings
 
-from .channels_dialog import ChannelsDialog, ChannelsDialogModel
-from .histogram import HistogramWidget, HistogramModel
 
-STD_FORMAT = '%(asctime)s | %(levelname)1.1s | %(filename)s:%(lineno)d (%(funcName)s) | %(message)s'
-#
-#
 app = QtWidgets.QApplication.instance()
 if not app:
     app = QtWidgets.QApplication(sys.argv)
@@ -347,7 +345,8 @@ class ImageSet(object):
         pixels = (right - left) * (top - bottom)
         return pixels
 
-    def ROI_std_dev(self, left=None, bottom=None, right=None, top=None, data=None):
+    def ROI_std_dev(
+            self, left=None, bottom=None, right=None, top=None, data=None):
         """Calculate the standard deviation in the Region of Interest
 
         Note
@@ -380,7 +379,8 @@ class ImageSet(object):
         std_dev = round(np.std(data), 6)
         return std_dev
 
-    def ROI_mean(self, left=None, bottom=None, right=None, top=None, data=None):
+    def ROI_mean(
+            self, left=None, bottom=None, right=None, top=None, data=None):
         """Calculate the mean of the Region of Interest
 
         Parameters
@@ -403,7 +403,8 @@ class ImageSet(object):
         mean = round(np.mean(data), 4)
         return mean
 
-    def ROI_median(self, left=None, bottom=None, right=None, top=None, data=None):
+    def ROI_median(
+            self, left=None, bottom=None, right=None, top=None, data=None):
         """Find the median of the Region of Interest
 
         Parameters
@@ -426,7 +427,8 @@ class ImageSet(object):
         median = np.median(data)
         return median
 
-    def ROI_min(self, left=None, bottom=None, right=None, top=None, data=None):
+    def ROI_min(
+            self, left=None, bottom=None, right=None, top=None, data=None):
         """Find the minimum pixel value of the Region of Interest
 
         Parameters
@@ -449,7 +451,8 @@ class ImageSet(object):
         minimum = np.nanmin(data)
         return minimum
 
-    def ROI_max(self, left=None, bottom=None, right=None, top=None, data=None):
+    def ROI_max(
+            self, left=None, bottom=None, right=None, top=None, data=None):
         """Find the maximum pixel value of the Region of Interest
 
         Parameters
