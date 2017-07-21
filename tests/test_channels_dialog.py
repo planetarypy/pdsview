@@ -1,8 +1,9 @@
-from pdsview import pdsview, channels_dialog, band_widget
-import pytestqt
-from qtpy import QtWidgets, QtCore
 import os
 from functools import wraps
+
+from qtpy import QtWidgets, QtCore
+
+from pdsview import pdsview, channels_dialog, band_widget
 
 FILE_1 = os.path.join(
     'tests', 'mission_data', '2m132591087cfd1800p2977m2f1.img')

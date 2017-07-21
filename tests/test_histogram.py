@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from pdsview import pdsview, histogram
-import pytestqt
+import os
+
 import pytest
 import numpy as np
-from matplotlib.lines import Line2D
 from qtpy import QtWidgets, QtCore
-import os
-from matplotlib.backend_bases import MouseEvent
+from matplotlib.lines import Line2D
 
+
+from pdsview import pdsview, histogram
 
 FILE_1 = os.path.join(
     'tests', 'mission_data', '1p190678905erp64kcp2600l8c1.img')
@@ -182,7 +182,6 @@ def test_controller_restore():
     assert model.cuts != (24, 42)
     assert model.cuts == def_cuts
     assert model.view_cuts == def_cuts
-
 
 
 def test_histogram_init():
