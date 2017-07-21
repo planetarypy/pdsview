@@ -40,6 +40,4 @@ install:
 
 # command to run tests, e.g. python setup.py test
 script:
-  - flake8 pdsview
-  - sphinx-build -b linkcheck docs/ docs/_build/
-  - sphinx-build -b html docs/ docs/_build/
+  - py.test tests
