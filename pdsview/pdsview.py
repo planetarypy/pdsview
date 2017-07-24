@@ -1051,7 +1051,10 @@ class PDSViewer(QtWidgets.QMainWindow):
 
         # If the entire ROI is outside the ROI, delete the ROI and set the ROI
         # to the whole image
-        if not any(left_in_image, right_in_image, top_in_image, bot_in_image):
+        in_image = any(
+            (left_in_image, right_in_image, top_in_image, bot_in_image)
+        )
+        if not in_image:
             self.set_ROI_text(0, 0, current_image.width, current_image.height)
             self.delete_ROI()
             return
