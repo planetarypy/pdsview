@@ -93,7 +93,7 @@ class LabelSearch(QtWidgets.QDialog):
         self.cursor = self.parent.label_contents.textCursor()
         self.highlight_reset()
         self.query_edit = True
-        print(self.parent.doc_len)
+        # print(self.parent.doc_len)
         # Setting and using the query. X.toPlainText() returns
         # an empty string
         # if there is nothing in the box. The search spazzes out if there is an

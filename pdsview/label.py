@@ -66,9 +66,9 @@ class LabelView(QtWidgets.QDialog):
 
         # Setting up the label and adding it to the label field.
         self.label_contents.setText('\n'.join(self.parent.image_label))
-        print(len(self.parent.image_label))
+        # print(len(self.parent.image_label))
         self.doc_len = len(self.parent.image_label)
-        print(self.doc_len)
+        # print(self.doc_len)
         # for i in self.parent.image_label:
         #     print(i)
 
