@@ -78,6 +78,9 @@ class ChannelsDialog(QtWidgets.QDialog):
         self.controller = ChannelsDialogController(model, self)
         super(ChannelsDialog, self).__init__()
 
+        #Setting window details
+        self.setWindowTitle("Channel")
+
         # Create display of image names and highlight the current image/channel
         self.image_tree = QtWidgets.QTreeWidget()
         self.image_tree.setColumnCount(1)

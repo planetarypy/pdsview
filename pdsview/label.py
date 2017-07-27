@@ -14,13 +14,32 @@ except:
     from pdsview import textfinder
 
 
+class LabelModel(object):
+    def __init__(self):
+        self._views = set()
+        # self.parent = parent
+
+    def register(self, view):
+        self._views.add(view)
+
+    def unregister(self, view):
+        self._views.remove(view)
+
+
+class LabelController(object):
+    def __init__(self, model, view):
+        self.model = model
+        self.view = view
+
+
 class LabelView(QtWidgets.QDialog):
     """A PDS image label viewer."""
-
-    def __init__(self, parent):
+    def __init__(self, model, parent):
+        self.model = model
+        self.model.register(self)
+        self.controller = LabelController(model, self)
         super(LabelView, self).__init__(parent)
 
-        # Initialize the subdialogs
         self._finder_window = None
 
         self.parent = parent
@@ -47,6 +66,11 @@ class LabelView(QtWidgets.QDialog):
 
         # Setting up the label and adding it to the label field.
         self.label_contents.setText('\n'.join(self.parent.image_label))
+        # print(len(self.parent.image_label))
+        self.doc_len = len(self.parent.image_label)
+        # print(self.doc_len)
+        # for i in self.parent.image_label:
+        #     print(i)
 
         # Creating and binding the buttons.
         self.find_button = QtWidgets.QPushButton("Find")

@@ -16,11 +16,11 @@ from ginga.qtw.ImageViewCanvasQt import ImageViewCanvas
 
 from .histogram import HistogramWidget, HistogramModel
 from .channels_dialog import ChannelsDialog, ChannelsDialogModel
+
 try:
     from . import label
 except ImportError:
     from pdsview import label
-
 
 app = QtWidgets.QApplication.instance()
 if not app:
@@ -64,7 +64,8 @@ class ImageStamp(BaseImage):
         BaseImage.__init__(self, data_np=data_np, metadata=metadata,
                            logger=logger)
         self.set_data(data_np)
-        with open(filepath, 'rb') as f:
+        _open = gzip.open if filepath.endswith('gz') else open
+        with _open(filepath, 'rb') as f:
             label_array = []
             for lineno, line in enumerate(f):
                 line = line.decode().rstrip()
@@ -127,7 +128,7 @@ class ImageSet(object):
         # self._last_channel = None
         self._x_value = 0
         self._y_value = 0
-        self._pixel_value = (0, )
+        self._pixel_value = (0,)
         self.use_default_text = True
         self.rgb = []
         if self.images:
@@ -288,6 +289,7 @@ class ImageSet(object):
                 )
             else:
                 return func(self)
+
         return wrapper
 
     @_create_rgb_image_wrapper
@@ -477,7 +479,6 @@ class ImageSet(object):
 
 
 class PDSController(object):
-
     def __init__(self, model, view):
         self.model = model
         self.view = view
@@ -603,7 +604,7 @@ class PDSViewer(QtWidgets.QMainWindow):
         self.pixel_value_lbl = QtWidgets.QLabel(
             'R: ######, G: ###### B: ######')
 
-        self.pixels = QtWidgets.QLabel('#Pixels: #######')
+        self.pixels = QtWidgets.QLabel('Pixels: #######')
         self.std_dev = QtWidgets.QLabel(
             'Std Dev: R: ######### G: ######### B: #########')
         self.mean = QtWidgets.QLabel(
@@ -771,7 +772,9 @@ class PDSViewer(QtWidgets.QMainWindow):
                 elif channel_was_changed:
                     self._renew_display_values()
                 return result
+
             return wrapper
+
         return decorator
 
     @_change_wrapper(True)
@@ -872,7 +875,8 @@ class PDSViewer(QtWidgets.QMainWindow):
         # Utilizing the sub window variables to check if the label window has
         # been opened before. If not, the window is initialized.
         if self._label_window is None:
-            self._label_window = label.LabelView(self)
+            label_model = label.LabelModel()
+            self._label_window = label.LabelView(label_model, self)
         self._label_window.is_open = True
         self._label_window.show()
         self._label_window.activateWindow()
@@ -880,6 +884,9 @@ class PDSViewer(QtWidgets.QMainWindow):
     def _update_label(self):
         # Update label
         self.image_label = self.current_image.label
+        # print("Type of image label", len(self.image_label))
+        # for i in self.image_label:
+        #     print(i)
 
         # This checks to see if the label window exists and is open. If so,
         # this resets the label field so that the label being displayed is the
@@ -1400,6 +1407,6 @@ def cli():
     parser.add_argument(
         'file', nargs='*',
         help="Input filename or glob for files with certain extensions"
-        )
+    )
     args = parser.parse_args()
     pdsview(args.file)

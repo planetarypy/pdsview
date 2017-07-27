@@ -8,6 +8,26 @@ will be undone and the query will be cleared.
 from qtpy import QtWidgets, QtCore, QtGui
 
 
+# class LabelSearchModel(object):
+#     def __init__(self):
+#         self._views = set()
+#
+#     def register(self, view):
+#         self._views.add(view)
+#
+#     def unregister(self, view):
+#         self._views.remove(view)
+#
+#
+# class LabelSearchController(object):
+#
+#     pass
+#
+#
+# class LabelSearchView(QtWidgets.QDialog):
+#     pass
+
+
 class LabelSearch(QtWidgets.QDialog):
     """A simple search tool for text widgets."""
 
@@ -33,48 +53,108 @@ class LabelSearch(QtWidgets.QDialog):
         # This is a live search, so the only button needed is one to hide the
         # window.
         self.ok_button = QtWidgets.QPushButton("Ok")
-        self.ok_button.clicked.connect(self.cancel)
+        self.previous_button = QtWidgets.QPushButton("Previous")
+        self.next_button = QtWidgets.QPushButton("Next")
+        self.ok_button.clicked.connect(self.highlighter)
+        self.next_button.clicked.connect(self.click_next)
+        self.previous_button.clicked.connect(self.click_previous)
 
         self.layout = QtWidgets.QVBoxLayout()
+        self.hlayout = QtWidgets.QHBoxLayout()
         self.layout.addWidget(self.find_field)
-        self.layout.addWidget(self.ok_button)
+        self.hlayout.addWidget(self.ok_button)
+        self.hlayout.addWidget(self.previous_button)
+        self.hlayout.addWidget(self.next_button)
+
+        self.layout.addLayout(self.hlayout)
 
         self.setLayout(self.layout)
 
-        self.find_field.textChanged.connect(self.highlighter)
+        self.list_of_indexes = list()
+        self.counter = 0
+
+        self.query_primary_color = QtGui.QTextCharFormat()
+        self.query_primary_color.setBackground(QtGui.QBrush(QtGui.QColor("red")))
+
+        self.query_secondary_color = QtGui.QTextCharFormat()
+        self.query_secondary_color.setBackground(QtGui.QBrush(QtGui.QColor("yellow")))
+
+        self.slider = self.parent.label_contents.verticalScrollBar()
+        self.scale_constant = 11
+        self.max_range = self.parent.doc_len * self.scale_constant
+        self.slider.setRange(0, self.max_range)
+        # self.slider.setMinimum(0)
+        # self.slider.setMaximum(self.parent.doc_len)
+
+        # self.find_field.textChanged.connect(self.highlighter)
 
     def highlighter(self):
+        self.list_of_indexes = list()
         self.cursor = self.parent.label_contents.textCursor()
         self.highlight_reset()
-
         self.query_edit = True
-
-        # Setting and using the query. X.toPlainText() returns an empty string
+        # print(self.parent.doc_len)
+        # Setting and using the query. X.toPlainText() returns
+        # an empty string
         # if there is nothing in the box. The search spazzes out if there is an
         # empty string, so the "if" filter is needed. This method does nothing
         # if the query is an empty string.
         query = self.find_field.toPlainText()
-        if(query != ""):
+        if query != "":
             # Setting the highlight color, the query, and the cursor for the
             # label contents window.
-            query_color = QtGui.QTextCharFormat()
-            query_color.setBackground(QtGui.QBrush(QtGui.QColor("red")))
             regex = QtCore.QRegExp(query)
-            self.cursor = self.parent.label_contents.textCursor()
             pos = 0
             index = regex.indexIn(
                 self.parent.label_contents.toPlainText(), pos)
 
             # This finds and highlights all occurences of the query.
-            while (index != -1):
+            while index != -1:
                 self.cursor.setPosition(index)
                 self.cursor.movePosition(QtGui.QTextCursor.Right,
                                          QtGui.QTextCursor.KeepAnchor,
                                          len(query))
-                self.cursor.mergeCharFormat(query_color)
+
+                self.cursor.mergeCharFormat(self.query_primary_color)
                 pos = index + regex.matchedLength()
+                self.list_of_indexes.append(pos)
                 index = regex.indexIn(self.parent.label_contents.toPlainText(),
                                       pos)
+
+    def click_next(self):
+        self.cursor.mergeCharFormat(self.query_primary_color)
+        query = self.find_field.toPlainText()
+
+        self.counter += 1
+        index = self.list_of_indexes[self.counter % (len(self.list_of_indexes))]
+
+        self.cursor.setPosition(index - len(query))
+        self.cursor.movePosition(QtGui.QTextCursor.Right,
+                                 QtGui.QTextCursor.KeepAnchor,
+                                 len(query))
+        self.cursor.mergeCharFormat(self.query_secondary_color)
+        # print(self.cursor.blockNumber())
+        # print("Slider Value", (self.cursor.blockNumber() * self.scale_constant))
+        self.slider.setValue(self.cursor.blockNumber() * self.scale_constant)
+        # print(self.parent.label_contents.verticalScrollBar().value())
+        # print(index)
+        # self.parent.label_contents.verticalScrollBar().setValue(index)
+        # print(self.parent.label_contents.verticalScrollBar().value())
+
+    def click_previous(self):
+        self.cursor.mergeCharFormat(self.query_primary_color)
+        query = self.find_field.toPlainText()
+
+        self.counter -= 1
+        index = self.list_of_indexes[self.counter % (len(self.list_of_indexes))]
+
+        self.cursor.setPosition(index - len(query))
+        self.cursor.movePosition(QtGui.QTextCursor.Right,
+                                 QtGui.QTextCursor.KeepAnchor,
+                                 len(query))
+        self.cursor.mergeCharFormat(self.query_secondary_color)
+        # print("Slider Value", (self.cursor.blockNumber() * self.scale_constant))
+        self.slider.setValue(self.cursor.blockNumber() * self.scale_constant)
 
     def highlight_reset(self):
         # This method makes sure the text is unhighlighted.
