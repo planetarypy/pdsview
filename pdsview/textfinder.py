@@ -77,14 +77,23 @@ class LabelSearch(QtWidgets.QDialog):
         self.query_primary_color.setBackground(QtGui.QBrush(QtGui.QColor("red")))
 
         self.query_secondary_color = QtGui.QTextCharFormat()
-        self.query_secondary_color .setBackground(QtGui.QBrush(QtGui.QColor("yellow")))
+        self.query_secondary_color.setBackground(QtGui.QBrush(QtGui.QColor("yellow")))
+
+        self.slider = self.parent.label_contents.verticalScrollBar()
+        self.scale_constant = 11
+        self.max_range = self.parent.doc_len * self.scale_constant
+        self.slider.setRange(0, self.max_range)
+        # self.slider.setMinimum(0)
+        # self.slider.setMaximum(self.parent.doc_len)
 
         # self.find_field.textChanged.connect(self.highlighter)
 
     def highlighter(self):
+        self.list_of_indexes = list()
         self.cursor = self.parent.label_contents.textCursor()
         self.highlight_reset()
         self.query_edit = True
+        print(self.parent.doc_len)
         # Setting and using the query. X.toPlainText() returns
         # an empty string
         # if there is nothing in the box. The search spazzes out if there is an
@@ -123,6 +132,13 @@ class LabelSearch(QtWidgets.QDialog):
                                  QtGui.QTextCursor.KeepAnchor,
                                  len(query))
         self.cursor.mergeCharFormat(self.query_secondary_color)
+        # print(self.cursor.blockNumber())
+        # print("Slider Value", (self.cursor.blockNumber() * self.scale_constant))
+        self.slider.setValue(self.cursor.blockNumber() * self.scale_constant)
+        # print(self.parent.label_contents.verticalScrollBar().value())
+        # print(index)
+        # self.parent.label_contents.verticalScrollBar().setValue(index)
+        # print(self.parent.label_contents.verticalScrollBar().value())
 
     def click_previous(self):
         self.cursor.mergeCharFormat(self.query_primary_color)
@@ -136,6 +152,8 @@ class LabelSearch(QtWidgets.QDialog):
                                  QtGui.QTextCursor.KeepAnchor,
                                  len(query))
         self.cursor.mergeCharFormat(self.query_secondary_color)
+        # print("Slider Value", (self.cursor.blockNumber() * self.scale_constant))
+        self.slider.setValue(self.cursor.blockNumber() * self.scale_constant)
 
     def highlight_reset(self):
         # This method makes sure the text is unhighlighted.

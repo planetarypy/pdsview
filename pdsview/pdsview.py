@@ -874,7 +874,8 @@ class PDSViewer(QtWidgets.QMainWindow):
         # Utilizing the sub window variables to check if the label window has
         # been opened before. If not, the window is initialized.
         if self._label_window is None:
-            self._label_window = label.LabelView(self)
+            label_model = label.LabelModel()
+            self._label_window = label.LabelView(label_model, self)
         self._label_window.is_open = True
         self._label_window.show()
         self._label_window.activateWindow()
@@ -882,6 +883,9 @@ class PDSViewer(QtWidgets.QMainWindow):
     def _update_label(self):
         # Update label
         self.image_label = self.current_image.label
+        # print("Type of image label", len(self.image_label))
+        # for i in self.image_label:
+        #     print(i)
 
         # This checks to see if the label window exists and is open. If so,
         # this resets the label field so that the label being displayed is the
