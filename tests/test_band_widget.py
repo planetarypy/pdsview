@@ -1,7 +1,8 @@
 import os
 
-from pdsview import pdsview, channels_dialog, band_widget
 from qtpy import QtWidgets
+
+from pdsview import pdsview, channels_dialog, band_widget
 
 FILE_1 = os.path.join(
     'tests', 'mission_data', '2m132591087cfd1800p2977m2f1.img')

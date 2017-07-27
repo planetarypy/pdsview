@@ -105,7 +105,8 @@ class LabelSearch(QtWidgets.QDialog):
             # label contents window.
             regex = QtCore.QRegExp(query)
             pos = 0
-            index = regex.indexIn(self.parent.label_contents.toPlainText(), pos)
+            index = regex.indexIn(
+                self.parent.label_contents.toPlainText(), pos)
 
             # This finds and highlights all occurences of the query.
             while index != -1:

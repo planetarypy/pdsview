@@ -2,4 +2,4 @@
 
 __author__ = 'PlanetaryPy Developers'
 __email__ = 'contact@planetarypy.com'
-__version__ = '0.4.1'
+__version__ = '0.5.1'

@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from pdsview import warningtimer
-import pytestqt
+import sys
+
 import pytest
 from qtpy import QtWidgets
-import os
-import sys
+
+from pdsview import warningtimer
 
 
 def test_model_init():
@@ -13,14 +13,15 @@ def test_model_init():
     assert test_timer._title == "Title"
     assert test_timer._message == "Message"
     assert test_timer._time_to_wait == 3
-    assert test_timer.parent == None
+    assert test_timer.parent is None
     assert len(test_timer._views) == 0
 
-    test_timer2 = warningtimer.WarningTimerModel(None, "Title2", "Message2", 10)
+    test_timer2 = warningtimer.WarningTimerModel(
+        None, "Title2", "Message2", 10)
     assert test_timer2._title == "Title2"
     assert test_timer2._message == "Message2"
     assert test_timer2._time_to_wait == 10
-    assert test_timer2.parent == None
+    assert test_timer2.parent is None
 
 
 def test_model_title():

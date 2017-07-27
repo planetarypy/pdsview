@@ -33,7 +33,7 @@ install:
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
       pip install PySide;
     else
-      pip install pyqt5==5.8.2;
+      pip install -U PyQt5==5.8.2;
     fi
   - get_mission_data
   - conda list

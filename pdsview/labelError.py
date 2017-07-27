@@ -17,7 +17,10 @@ class LabelError(QtWidgets.QDialog):
         self.resize(400, 140)
 
         # Create and populate the message and the acknowledgement fields.
-        self.message_field = QtWidgets.QLabel("<font color=black size=24><center><b>No label found.</b></center></font>")
+        self.message_field = QtWidgets.QLabel(
+            "<font color=black size=24><center><b>No label found.</b>" +
+            "</center></font>"
+        )
         self.message_field.resize(350, 100)
         self.confirm_button = QtWidgets.QPushButton("Ok")
         self.confirm_button.clicked.connect(self.confirm)
